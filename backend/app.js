@@ -1,15 +1,10 @@
 const express = require("express");
+const cors = require("cors");
 const app = express();
-
-const User = require("./models/User");
-const Trip = require("./models/Trip");
-const Itinerary = require("./models/Itinerary");
 require("./db");
 
-app.get("/", (req, res) => {
-    res.send("MongoDB is connected!");
-});
+app.use(cors());
+app.use(express.json());
+app.use("/api", require("./routes/tripRoutes"));
 
-app.listen(3000, () => {
-    console.log("Server running on port 3000");
-});
+app.listen(5000, () => console.log("Server started"));
