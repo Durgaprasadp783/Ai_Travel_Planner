@@ -1,47 +1,41 @@
 "use client";
 
-import React, { useState } from 'react'; // 1. Added useState here
+import React, { useState } from 'react';
 import { Form, Select, DatePicker, InputNumber, Button, Card, Typography, message } from 'antd';
 import { CompassOutlined, SendOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import dayjs from 'dayjs'; // Import dayjs for date handling
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 export default function PlanTripPage() {
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    // --- STEP 3: INITIALIZE LOADING STATE ---
-    // We start with 'false' because the app isn't loading when the page first opens
-    const [loading, setLoading] = useState(false);
-
+    // --- THE LOGIC: Saving Data Correctly ---
     const onFinish = (values: any) => {
-        // --- STEP 3: SET LOADING TO TRUE ---
-        // This turns on the spinner as soon as the user clicks the button
         setLoading(true);
 
+        // 1. Format the data so the Dashboard can read it easily
         const travelData = {
             destination: values.destination,
             budget: values.budget,
-            dates: [
-                values.dates[0].format('YYYY-MM-DD'),
-                values.dates[1].format('YYYY-MM-DD')
-            ]
+            // CRITICAL FIX: Saving specific start and end dates as strings
+            startDate: values.dates[0].format('YYYY-MM-DD'),
+            endDate: values.dates[1].format('YYYY-MM-DD'),
         };
 
+        // 2. Save to local storage
         localStorage.setItem('lastPlannedTrip', JSON.stringify(travelData));
 
-        // Simulate AI processing time (2 seconds)
+        // 3. Redirect after a short delay
         setTimeout(() => {
-            message.success('AI is crafting your perfect trip...');
-
-            // We don't need to set loading to false here because we are 
-            // redirecting to a new page, but it's good practice!
+            message.success('Itinerary generated successfully!');
             setLoading(false);
-
             router.push('/dashboard');
-        }, 2000);
+        }, 1500);
     };
 
     return (
@@ -50,7 +44,7 @@ export default function PlanTripPage() {
                 <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                     <CompassOutlined style={{ fontSize: '40px', color: '#1890ff' }} />
                     <Title level={2}>Plan Your Trip</Title>
-                    <Text type="secondary">Let AI build your itinerary</Text>
+                    <Text type="secondary">Fill in the details for your AI-generated itinerary</Text>
                 </div>
 
                 <Form
@@ -62,42 +56,46 @@ export default function PlanTripPage() {
                     <Form.Item
                         name="destination"
                         label="Destination"
-                        rules={[{ required: true, message: 'Select a destination' }]}
+                        rules={[{ required: true, message: 'Please select a destination' }]}
                     >
-                        <Select placeholder="Where to?">
+                        <Select placeholder="Where are you going?">
                             <Select.Option value="Paris, France">Paris, France</Select.Option>
                             <Select.Option value="Tokyo, Japan">Tokyo, Japan</Select.Option>
+                            <Select.Option value="New York, USA">New York, USA</Select.Option>
+                            <Select.Option value="London, UK">London, UK</Select.Option>
                         </Select>
                     </Form.Item>
 
                     <Form.Item
                         name="dates"
                         label="Travel Dates"
-                        rules={[{ required: true, message: 'Select dates' }]}
+                        rules={[{ required: true, message: 'Please select travel dates' }]}
                     >
-                        <RangePicker style={{ width: '100%' }} />
+                        {/* Added disabledDate to prevent selecting past dates (Day 11 Feature) */}
+                        <RangePicker
+                            style={{ width: '100%' }}
+                            disabledDate={(current) => current && current < dayjs().endOf('day')}
+                        />
                     </Form.Item>
 
                     <Form.Item
                         name="budget"
                         label="Daily Budget ($)"
-                        rules={[{ required: true, message: 'Enter a budget' }]}
+                        rules={[{ required: true, message: 'Please enter a budget' }]}
                     >
-                        <InputNumber min={1} style={{ width: '100%' }} placeholder="100" />
+                        <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 100" />
                     </Form.Item>
 
                     <Form.Item>
-                        {/* --- STEP 3: ADD LOADING PROP TO BUTTON --- */}
-                        {/* The 'loading' prop automatically adds the Ant Design spinner */}
                         <Button
                             type="primary"
                             htmlType="submit"
                             block
                             size="large"
-                            icon={<SendOutlined />}
                             loading={loading}
+                            icon={<SendOutlined />}
                         >
-                            {loading ? 'AI is Thinking...' : 'Generate Itinerary'}
+                            {loading ? 'Generating...' : 'Generate Itinerary'}
                         </Button>
                     </Form.Item>
                 </Form>
