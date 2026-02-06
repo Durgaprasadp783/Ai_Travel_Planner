@@ -1,22 +1,39 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const authRoutes = require('./routes/auth'); // Import the routes
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+
+const authRoutes = require("./routes/authRoutes");
+const tripRoutes = require("./routes/tripRoutes"); // 👈 ADD THIS
 
 const app = express();
 
-// Middleware
-app.use(express.json()); // Allows parsing JSON bodies
-app.use(cors()); // Prevents CORS errors connecting to frontend
 
-// Database Connection
+// =====================
+// Middleware section
+// =====================
+app.use(cors());
+app.use(express.json());
+
+
+// =====================
+// Routes section
+// =====================
+app.use("/api/auth", authRoutes);
+app.use("/api/trips", tripRoutes); // 👈 ADD IT HERE
+
+
+// =====================
+// Database connection
+// =====================
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB Connected"))
-    .catch((err) => console.error("MongoDB Connection Error:", err));
+    .then(() => console.log("MongoDB Connected Successfully"))
+    .catch(err => console.log(err));
 
-// Use Routes
-app.use('/api/auth', authRoutes); // URLs will be /api/auth/login, etc.
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// =====================
+// Start server
+// =====================
+app.listen(process.env.PORT, () =>
+    console.log(`Server running on port ${process.env.PORT}`)
+);
