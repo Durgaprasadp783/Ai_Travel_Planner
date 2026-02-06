@@ -38,4 +38,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# debug scripts
+resolve_mongo.js
+resolve_output.json

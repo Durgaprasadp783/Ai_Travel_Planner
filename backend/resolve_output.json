@@ -1,0 +1,36 @@
+[
+  {
+    "type": "SRV",
+    "data": [
+      {
+        "name": "ac-2wmnlkh-shard-00-00.v9yf9bo.mongodb.net",
+        "port": 27017,
+        "priority": 0,
+        "weight": 0,
+        "type": "SRV"
+      },
+      {
+        "name": "ac-2wmnlkh-shard-00-01.v9yf9bo.mongodb.net",
+        "port": 27017,
+        "priority": 0,
+        "weight": 0,
+        "type": "SRV"
+      },
+      {
+        "name": "ac-2wmnlkh-shard-00-02.v9yf9bo.mongodb.net",
+        "port": 27017,
+        "priority": 0,
+        "weight": 0,
+        "type": "SRV"
+      }
+    ]
+  },
+  {
+    "type": "TXT",
+    "data": [
+      [
+        "authSource=admin&replicaSet=atlas-zzxxiq-shard-0"
+      ]
+    ]
+  }
+]
