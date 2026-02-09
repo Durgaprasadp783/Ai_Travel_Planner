@@ -1,58 +1,158 @@
 "use client";
 
-import React from 'react';
-import { Form, Input, Button, Card, Tabs, message, Checkbox } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import React, { useState } from "react";
+import { Form, Input, Button, Card, Tabs, message, Checkbox } from "antd";
+import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth`;
 
 const LoginPage = () => {
-    const [form] = Form.useForm();
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
-    const onFinish = (values: any) => {
-        console.log('Received values of form: ', values);
-        message.success('Action successful! Redirecting to dashboard...');
+    /* ================= LOGIN ================= */
+    const handleLogin = async (values: any) => {
+        try {
+            setLoading(true);
+
+            const res = await fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Login failed");
+            }
+
+            localStorage.setItem("token", data.token);
+
+            message.success("Login successful!");
+            router.push("/dashboard"); // change route if needed
+        } catch (err: any) {
+            message.error(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
+    /* ================= REGISTER ================= */
+    const handleRegister = async (values: any) => {
+        try {
+            setLoading(true);
+
+            const res = await fetch(`${API_BASE}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: values.username,
+                    email: values.email,
+                    password: values.password,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Registration failed");
+            }
+
+            message.success("Registration successful! Please login.");
+        } catch (err: any) {
+            message.error(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ================= FORMS ================= */
+
     const loginForm = (
-        <Form name="login" onFinish={onFinish} layout="vertical">
-            <Form.Item name="email" rules={[{ required: true, message: 'Please input your Email!', type: 'email' }]}>
+        <Form onFinish={handleLogin} layout="vertical">
+            <Form.Item
+                name="email"
+                rules={[
+                    { required: true, message: "Please input your Email!" },
+                    { type: "email", message: "Invalid email format!" },
+                ]}
+            >
                 <Input prefix={<MailOutlined />} placeholder="Email" size="large" />
             </Form.Item>
-            <Form.Item name="password" rules={[{ required: true, message: 'Please input your Password!' }]}>
+
+            <Form.Item
+                name="password"
+                rules={[
+                    { required: true, message: "Please input your Password!" },
+                    { min: 8, message: "Password must be at least 8 characters" },
+                ]}
+            >
                 <Input.Password prefix={<LockOutlined />} placeholder="Password" size="large" />
             </Form.Item>
+
             <Form.Item>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <Checkbox>Remember me</Checkbox>
-                    <a href="">Forgot password</a>
+                    <a>Forgot password</a>
                 </div>
             </Form.Item>
-            <Button type="primary" htmlType="submit" size="large" block>Log in</Button>
+
+            <Button type="primary" htmlType="submit" size="large" block loading={loading}>
+                Log in
+            </Button>
         </Form>
     );
 
     const registerForm = (
-        <Form name="register" onFinish={onFinish} layout="vertical">
-            <Form.Item name="username" rules={[{ required: true, message: 'Please input your Username!' }]}>
+        <Form onFinish={handleRegister} layout="vertical">
+            <Form.Item
+                name="username"
+                rules={[{ required: true, message: "Please input your Username!" }]}
+            >
                 <Input prefix={<UserOutlined />} placeholder="Username" size="large" />
             </Form.Item>
-            <Form.Item name="email" rules={[{ required: true, message: 'Please input your Email!', type: 'email' }]}>
+
+            <Form.Item
+                name="email"
+                rules={[
+                    { required: true, message: "Please input your Email!" },
+                    { type: "email", message: "Invalid email format!" },
+                ]}
+            >
                 <Input prefix={<MailOutlined />} placeholder="Email" size="large" />
             </Form.Item>
-            <Form.Item name="password" rules={[{ required: true, message: 'Please input your Password!' }]}>
+
+            <Form.Item
+                name="password"
+                rules={[
+                    { required: true, message: "Please input your Password!" },
+                    { min: 8, message: "Password must be at least 8 characters" },
+                ]}
+            >
                 <Input.Password prefix={<LockOutlined />} placeholder="Password" size="large" />
             </Form.Item>
-            <Button type="primary" htmlType="submit" size="large" block>Sign Up</Button>
+
+            <Button type="primary" htmlType="submit" size="large" block loading={loading}>
+                Sign Up
+            </Button>
         </Form>
     );
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-            <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                <h2 style={{ textAlign: 'center', marginBottom: 24 }}>AI Travel Planner</h2>
-                <Tabs defaultActiveKey="1" centered items={[
-                    { label: 'Login', key: '1', children: loginForm },
-                    { label: 'Register', key: '2', children: registerForm },
-                ]} />
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+            <Card style={{ width: 400, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                <h2 style={{ textAlign: "center", marginBottom: 24 }}>AI Travel Planner</h2>
+
+                <Tabs
+                    defaultActiveKey="1"
+                    centered
+                    items={[
+                        { label: "Login", key: "1", children: loginForm },
+                        { label: "Register", key: "2", children: registerForm },
+                    ]}
+                />
             </Card>
         </div>
     );

@@ -4,44 +4,12 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: Authentication API
- */
-
 /**
  * @swagger
  * /api/auth/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       201:
- *         description: User registered successfully
- *       400:
- *         description: User already exists
- *       500:
- *         description: Server error
+ * post:
+ * summary: Register a new user
+ * tags: [Auth]
  */
 router.post('/register', async (req, res) => {
     try {
@@ -53,11 +21,11 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        // Hash the password (Security Step)
+        // Hash the password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create new user
+        // Create and save new user
         const newUser = new User({
             name,
             email,
@@ -65,7 +33,6 @@ router.post('/register', async (req, res) => {
         });
 
         await newUser.save();
-
         res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
         res.status(500).json({ message: "Server Error", error: error.message });
@@ -75,47 +42,19 @@ router.post('/register', async (req, res) => {
 /**
  * @swagger
  * /api/auth/login:
- *   post:
- *     summary: Login user
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *       400:
- *         description: Invalid credentials
+ * post:
+ * summary: Login user
+ * tags: [Auth]
  */
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if user exists
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        // Check if password matches
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
@@ -125,14 +64,13 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { userId: user._id },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' } // Token expires in 1 hour
+            { expiresIn: '1h' }
         );
 
         res.status(200).json({
             token,
             user: { id: user._id, name: user.name, email: user.email }
         });
-
     } catch (error) {
         res.status(500).json({ message: "Server Error", error: error.message });
     }

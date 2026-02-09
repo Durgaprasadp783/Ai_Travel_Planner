@@ -11,7 +11,8 @@ export default function Home() {
   const [backendStatus, KvackendStatus] = useState<string>("Checking connection...");
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/trips') // Using existing route to test connection
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    fetch(`${apiUrl}/trips`) // Using existing route to test connection
       .then(() => KvackendStatus("Connected to Backend ✅"))
       .catch(() => KvackendStatus("Backend Disconnected ❌"));
   }, []);
