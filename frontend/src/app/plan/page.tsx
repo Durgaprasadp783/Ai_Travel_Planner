@@ -4,38 +4,39 @@ import React, { useState } from 'react';
 import { Form, Select, DatePicker, InputNumber, Button, Card, Typography, message } from 'antd';
 import { CompassOutlined, SendOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import dayjs from 'dayjs'; // Import dayjs for date handling
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 export default function PlanTripPage() {
     const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
-    // --- THE LOGIC: Saving Data Correctly ---
     const onFinish = (values: any) => {
         setLoading(true);
 
-        // 1. Format the data so the Dashboard can read it easily
-        const travelData = {
+        // Prepare data
+        const tripData = {
             destination: values.destination,
             budget: values.budget,
-            // CRITICAL FIX: Saving specific start and end dates as strings
             startDate: values.dates[0].format('YYYY-MM-DD'),
             endDate: values.dates[1].format('YYYY-MM-DD'),
         };
 
-        // 2. Save to local storage
-        localStorage.setItem('lastPlannedTrip', JSON.stringify(travelData));
+        // Save to LocalStorage (Acting as our temporary database)
+        localStorage.setItem('lastPlannedTrip', JSON.stringify(tripData));
 
-        // 3. Redirect after a short delay
+        // Simulate Network Delay (To show off the loading spinner)
         setTimeout(() => {
-            message.success('Itinerary generated successfully!');
+            message.success('Trip planned successfully!');
             setLoading(false);
             router.push('/dashboard');
         }, 1500);
+    };
+
+    const onFinishFailed = () => {
+        message.error('Please fix the errors in the form before submitting.');
     };
 
     return (
@@ -44,46 +45,56 @@ export default function PlanTripPage() {
                 <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                     <CompassOutlined style={{ fontSize: '40px', color: '#1890ff' }} />
                     <Title level={2}>Plan Your Trip</Title>
-                    <Text type="secondary">Fill in the details for your AI-generated itinerary</Text>
+                    <Text type="secondary">Enter your details below</Text>
                 </div>
 
                 <Form
                     form={form}
                     layout="vertical"
                     onFinish={onFinish}
-                    requiredMark={false}
+                    onFinishFailed={onFinishFailed}
+                    autoComplete="off"
                 >
+                    {/* VALIDATION 1: Destination is Required */}
                     <Form.Item
                         name="destination"
                         label="Destination"
-                        rules={[{ required: true, message: 'Please select a destination' }]}
+                        rules={[{ required: true, message: 'Please select a destination!' }]}
                     >
-                        <Select placeholder="Where are you going?">
-                            <Select.Option value="Paris, France">Paris, France</Select.Option>
-                            <Select.Option value="Tokyo, Japan">Tokyo, Japan</Select.Option>
-                            <Select.Option value="New York, USA">New York, USA</Select.Option>
-                            <Select.Option value="London, UK">London, UK</Select.Option>
+                        <Select placeholder="Select City">
+                            <Select.Option value="Paris">Paris, France</Select.Option>
+                            <Select.Option value="Tokyo">Tokyo, Japan</Select.Option>
+                            <Select.Option value="New York">New York, USA</Select.Option>
                         </Select>
                     </Form.Item>
 
+                    {/* VALIDATION 2: Dates are Required */}
                     <Form.Item
                         name="dates"
                         label="Travel Dates"
-                        rules={[{ required: true, message: 'Please select travel dates' }]}
+                        rules={[{ required: true, message: 'Please select your travel dates!' }]}
                     >
-                        {/* Added disabledDate to prevent selecting past dates (Day 11 Feature) */}
-                        <RangePicker
-                            style={{ width: '100%' }}
-                            disabledDate={(current) => current && current < dayjs().endOf('day')}
-                        />
+                        <RangePicker style={{ width: '100%' }} />
                     </Form.Item>
 
+                    {/* VALIDATION 3: Advanced Budget Rules (Step 4 specific) */}
                     <Form.Item
                         name="budget"
-                        label="Daily Budget ($)"
-                        rules={[{ required: true, message: 'Please enter a budget' }]}
+                        label="Budget ($)"
+                        rules={[
+                            { required: true, message: 'Please enter a budget!' },
+                            {
+                                type: 'number',
+                                min: 50,
+                                message: 'Budget must be at least $50 for a trip!'
+                            }
+                        ]}
                     >
-                        <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 100" />
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            prefix="$"
+                            placeholder="e.g. 500"
+                        />
                     </Form.Item>
 
                     <Form.Item>
@@ -95,7 +106,7 @@ export default function PlanTripPage() {
                             loading={loading}
                             icon={<SendOutlined />}
                         >
-                            {loading ? 'Generating...' : 'Generate Itinerary'}
+                            Generate Itinerary
                         </Button>
                     </Form.Item>
                 </Form>
