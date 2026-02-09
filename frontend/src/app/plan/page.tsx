@@ -15,27 +15,55 @@ export default function PlanTripPage() {
     const router = useRouter();
 
     // --- THE LOGIC: Saving Data Correctly ---
-    const onFinish = (values: any) => {
+    const onFinish = async (values: any) => {
         setLoading(true);
 
-        // 1. Format the data so the Dashboard can read it easily
-        const travelData = {
-            destination: values.destination,
-            budget: values.budget,
-            // CRITICAL FIX: Saving specific start and end dates as strings
-            startDate: values.dates[0].format('YYYY-MM-DD'),
-            endDate: values.dates[1].format('YYYY-MM-DD'),
-        };
+        try {
+            const token = localStorage.getItem("token");
 
-        // 2. Save to local storage
-        localStorage.setItem('lastPlannedTrip', JSON.stringify(travelData));
+            if (!token) {
+                message.error("You must be logged in to save a trip.");
+                setLoading(false);
+                return;
+            }
 
-        // 3. Redirect after a short delay
-        setTimeout(() => {
-            message.success('Itinerary generated successfully!');
-            setLoading(false);
+            // 1. Format the data 
+            const travelData = {
+                destination: values.destination,
+                budget: values.budget,
+                days: values.dates[1].diff(values.dates[0], 'day') + 1, // Calculate duration
+                startDate: values.dates[0].format('YYYY-MM-DD'),
+                endDate: values.dates[1].format('YYYY-MM-DD'),
+            };
+
+            // 2. Send to Backend
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/trips`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(travelData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to save trip");
+            }
+
+            // 3. Save to local storage (optional, for redundancy or other UI needs)
+            localStorage.setItem('lastPlannedTrip', JSON.stringify(travelData));
+
+            // 4. Redirect
+            message.success('Trip saved successfully!');
             router.push('/dashboard');
-        }, 1500);
+
+        } catch (error: any) {
+            console.error("Trip Save Error:", error);
+            message.error(error.message || "Something went wrong.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
