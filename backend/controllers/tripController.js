@@ -1,9 +1,86 @@
-const { getAIPlan } = require("../services/aiService");
+const Trip = require("../models/Trip");
+const { generateItinerary } = require("../services/aiService");
 
+/* 1. CREATE AI-GENERATED TRIP */
 exports.generateTrip = async (req, res) => {
     try {
-        const aiPlan = await getAIPlan(req.body);
-        res.json(aiPlan);
+        let { destination, startDate, endDate, days, budget, interests } = req.body;
+
+        // Calculate days if not provided
+        if (!days && startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        // Prepare input for AI
+        const aiInput = { destination, days, budget, interests };
+
+        // Get the AI-generated itinerary from your service
+        const aiPlan = await generateItinerary(aiInput);
+
+        // Create the trip linked to the logged-in user
+        const trip = await Trip.create({
+            user: req.user.userId,      // ID from your auth middleware
+            destination,
+            days,
+            startDate,
+            endDate,
+            budget,
+            itinerary: aiPlan,     // The structured JSON from AI
+        });
+
+        res.status(201).json(trip);
+    } catch (err) {
+        console.error("Trip Generation Error:", err.message);
+        res.status(500).json({ message: "Failed to generate and save trip" });
+    }
+};
+
+/* 2. GET ALL USER TRIPS */
+exports.getTrips = async (req, res) => {
+    try {
+        // Find trips where the 'user' field matches the current user's ID
+        const trips = await Trip.find({ user: req.user.userId }).sort({ createdAt: -1 });
+        res.json(trips);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch trips" });
+    }
+};
+
+/* 3. UPDATE TRIP */
+exports.updateTrip = async (req, res) => {
+    try {
+        const updatedTrip = await Trip.findOneAndUpdate(
+            { _id: req.params.id, user: req.user.userId }, // Ensure the user owns this trip
+            req.body,
+            { new: true, runValidators: true } // Returns the modified document
+        );
+
+        if (!updatedTrip) {
+            return res.status(404).json({ message: "Trip not found or unauthorized" });
+        }
+
+        res.json(updatedTrip);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+/* 4. DELETE TRIP */
+exports.deleteTrip = async (req, res) => {
+    try {
+        const deletedTrip = await Trip.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user.userId
+        });
+
+        if (!deletedTrip) {
+            return res.status(404).json({ message: "Trip not found or unauthorized" });
+        }
+
+        res.json({ message: "Trip deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

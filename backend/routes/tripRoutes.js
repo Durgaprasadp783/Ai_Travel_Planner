@@ -1,10 +1,13 @@
+// routes/tripRoutes.js
 const express = require("express");
-const Trip = require("../models/Trip");
-const authMiddleware = require("../middleware/authMiddleware");
-
 const router = express.Router();
-
-
+const auth = require("../middleware/authMiddleware");
+const {
+    generateTrip, // This is your AI-integrated creation function
+    getTrips,
+    updateTrip,
+    deleteTrip
+} = require("../controllers/tripController");
 
 /**
  * @swagger
@@ -17,7 +20,7 @@ const router = express.Router();
  * @swagger
  * /api/trips:
  *   post:
- *     summary: Create a new trip
+ *     summary: Create a new AI-generated trip
  *     tags: [Trips]
  *     security:
  *       - bearerAuth: []
@@ -27,15 +30,10 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - destination
- *               - days
- *               - userEmail
+ *             required: [destination, startDate, endDate]
  *             properties:
  *               destination:
  *                 type: string
- *               days:
- *                 type: number
  *               startDate:
  *                 type: string
  *                 format: date
@@ -44,54 +42,14 @@ const router = express.Router();
  *                 format: date
  *               budget:
  *                 type: number
- *               userEmail:
- *                 type: string
- *     responses:
- *       201:
- *         description: Trip created successfully
- *       500:
- *         description: Server error
- */
-router.post("/", authMiddleware, async (req, res) => {
-    try {
-        const newTrip = new Trip({
-            ...req.body,
-            user: req.user.userId
-        });
-
-        const savedTrip = await newTrip.save();
-        res.status(201).json(savedTrip);
-
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
-/**
- * @swagger
- * /api/trips:
  *   get:
- *     summary: Get all trips
+ *     summary: Get all trips for the logged-in user
  *     tags: [Trips]
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of trips
- *       500:
- *         description: Server error
  */
-router.get("/", authMiddleware, async (req, res) => {
-    try {
-        const trips = await Trip.find({ user: req.user.userId });
-        res.json(trips);
-
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
+router.post("/", auth, generateTrip);
+router.get("/", auth, getTrips);
 
 /**
  * @swagger
@@ -101,91 +59,13 @@ router.get("/", authMiddleware, async (req, res) => {
  *     tags: [Trips]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The trip ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               destination:
- *                 type: string
- *               startDate:
- *                 type: string
- *               endDate:
- *                 type: string
- *     responses:
- *       200:
- *         description: Trip updated successfully
- *       404:
- *         description: Trip not found
- *       500:
- *         description: Server error
- */
-router.put("/:id", authMiddleware, async (req, res) => {
-    try {
-        const updatedTrip = await Trip.findOneAndUpdate(
-            { _id: req.params.id, user: req.user.userId },
-            req.body,
-            { new: true }
-        );
-
-        if (!updatedTrip)
-            return res.status(404).json({ message: "Trip not found" });
-
-        res.json(updatedTrip);
-
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
-/**
- * @swagger
- * /api/trips/{id}:
  *   delete:
  *     summary: Delete a trip
  *     tags: [Trips]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The trip ID
- *     responses:
- *       200:
- *         description: Trip deleted successfully
- *       404:
- *         description: Trip not found
- *       500:
- *         description: Server error
  */
-router.delete("/:id", authMiddleware, async (req, res) => {
-    try {
-        const deletedTrip = await Trip.findOneAndDelete({
-            _id: req.params.id,
-            user: req.user.userId
-        });
-
-        if (!deletedTrip)
-            return res.status(404).json({ message: "Trip not found" });
-
-        res.json({ message: "Trip deleted successfully" });
-
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+router.put("/:id", auth, updateTrip);
+router.delete("/:id", auth, deleteTrip);
 
 module.exports = router;
