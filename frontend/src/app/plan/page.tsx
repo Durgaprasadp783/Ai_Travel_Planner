@@ -12,8 +12,6 @@ const { RangePicker } = DatePicker;
 export default function PlanTripPage() {
     const [form] = Form.useForm();
     const router = useRouter();
-
-    // Day 11: State to track if the AI is currently working
     const [loading, setLoading] = useState(false);
 
     // --- THE LOGIC: This only runs when the button is clicked ---
@@ -49,6 +47,10 @@ export default function PlanTripPage() {
         }
     };
 
+    const onFinishFailed = () => {
+        message.error('Please fix the errors in the form before submitting.');
+    };
+
     return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', minHeight: '80vh' }}>
             <Card style={{ width: 500, borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
@@ -61,13 +63,15 @@ export default function PlanTripPage() {
                 <Form
                     form={form}
                     layout="vertical"
-                    onFinish={onFinish} // <--- The logic trigger
+                    onFinish={onFinish}
+                    onFinishFailed={onFinishFailed}
                     autoComplete="off"
                 >
+                    {/* VALIDATION 1: Destination is Required */}
                     <Form.Item
                         name="destination"
                         label="Destination"
-                        rules={[{ required: true, message: 'Please select a destination' }]}
+                        rules={[{ required: true, message: 'Please select a destination!' }]}
                     >
                         <Select placeholder="Search for a city">
                             <Select.Option value="Paris, France">Paris, France</Select.Option>
@@ -77,6 +81,7 @@ export default function PlanTripPage() {
                         </Select>
                     </Form.Item>
 
+                    {/* VALIDATION 2: Dates are Required */}
                     <Form.Item
                         name="dates"
                         label="Travel Dates"
@@ -85,12 +90,24 @@ export default function PlanTripPage() {
                         <RangePicker style={{ width: '100%' }} />
                     </Form.Item>
 
+                    {/* VALIDATION 3: Advanced Budget Rules (Step 4 specific) */}
                     <Form.Item
                         name="budget"
-                        label="Total Budget ($)"
-                        rules={[{ required: true, message: 'Enter your budget' }]}
+                        label="Budget ($)"
+                        rules={[
+                            { required: true, message: 'Please enter a budget!' },
+                            {
+                                type: 'number',
+                                min: 50,
+                                message: 'Budget must be at least $50 for a trip!'
+                            }
+                        ]}
                     >
-                        <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 2000" />
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            prefix="$"
+                            placeholder="e.g. 500"
+                        />
                     </Form.Item>
 
                     <Form.Item style={{ marginTop: '32px' }}>
