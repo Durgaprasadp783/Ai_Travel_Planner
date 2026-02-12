@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { Form, Input, Button, Card, Tabs, message, Checkbox } from "antd";
 import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth`;
 
 const LoginPage = () => {
+    const { login } = useAuth(); // Destructure login from custom hook
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -28,10 +30,10 @@ const LoginPage = () => {
                 throw new Error(data.message || "Login failed");
             }
 
-            localStorage.setItem("token", data.token);
+            login(data.token); // Use AuthContext login
 
             message.success("Login successful!");
-            router.push("/dashboard"); // change route if needed
+            router.push("/dashboard");
         } catch (err: any) {
             message.error(err.message);
         } finally {

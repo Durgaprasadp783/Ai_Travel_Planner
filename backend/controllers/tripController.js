@@ -1,13 +1,24 @@
 const Trip = require("../models/Trip");
-const { getAIPlan } = require("../services/aiService");
+const { generateItinerary } = require("../services/aiService");
 
 /* 1. CREATE AI-GENERATED TRIP */
 exports.generateTrip = async (req, res) => {
     try {
-        const { destination, startDate, endDate, days, budget } = req.body;
+        let { destination, startDate, endDate, days, budget, interests } = req.body;
+
+        // Calculate days if not provided
+        if (!days && startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        // Prepare input for AI
+        const aiInput = { destination, days, budget, interests };
 
         // Get the AI-generated itinerary from your service
-        const aiPlan = await getAIPlan(req.body);
+        const aiPlan = await generateItinerary(aiInput);
 
         // Create the trip linked to the logged-in user
         const trip = await Trip.create({
