@@ -16,9 +16,17 @@ async function listModels() {
             `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`
         );
         const data = await response.json();
-        console.log("Available Models:");
+        const fs = require('fs');
+
         if (data.models) {
-            data.models.forEach(m => console.log(m.name));
+            console.log("--- GEMINI MODELS ---");
+            const models = data.models
+                .filter(m => m.name.toLowerCase().includes("gemini"))
+                .map(m => m.name);
+
+            models.forEach(m => console.log(m));
+            fs.writeFileSync('models_list.txt', models.join('\n'));
+            console.log("--- END ---");
         } else {
             console.log("No models found or error:", data);
         }

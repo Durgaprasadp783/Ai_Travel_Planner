@@ -1,12 +1,12 @@
 const Trip = require("../models/Trip");
-const { generateItinerary } = require("../services/aiService");
+const { getAIPlan } = require("../services/aiService");
+const { getForecast } = require("../services/weatherService");
 
-/* 1. CREATE AI-GENERATED TRIP */
+/* 1. CREATE AI-GENERATED TRIP WITH WEATHER */
 exports.generateTrip = async (req, res) => {
     try {
         let { destination, startDate, endDate, days, budget, interests } = req.body;
 
-        // Calculate days if not provided
         if (!days && startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
@@ -14,38 +14,50 @@ exports.generateTrip = async (req, res) => {
             days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
-        // Prepare input for AI
-        const aiInput = { destination, days, budget, interests };
+        const aiPlan = await getAIPlan({ destination, days, budget, interests });
 
-        // Get the AI-generated itinerary from your service
-        const aiPlan = await generateItinerary(aiInput);
+        const weatherData = await getForecast(destination, startDate, days);
 
-        // Create the trip linked to the logged-in user
+        if (weatherData && aiPlan.dailyPlan) {
+            aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => {
+                return {
+                    ...dayPlan,
+                    weather: weatherData[index] || "No forecast available"
+                };
+            });
+        }
+
         const trip = await Trip.create({
-            user: req.user.userId,      // ID from your auth middleware
+            user: req.user.userId,
             destination,
             days,
             startDate,
             endDate,
             budget,
-            itinerary: aiPlan,     // The structured JSON from AI
+            itinerary: aiPlan,
         });
 
         res.status(201).json(trip);
     } catch (err) {
-        console.error("Trip Generation Error:", err.message);
-        res.status(500).json({ message: "Failed to generate and save trip" });
+        console.error("DETAILED ERROR (Generate):", err);
+        res.status(500).json({
+            error: "Failed to build itinerary with weather",
+            details: err.message
+        });
     }
 };
 
 /* 2. GET ALL USER TRIPS */
 exports.getTrips = async (req, res) => {
     try {
-        // Find trips where the 'user' field matches the current user's ID
         const trips = await Trip.find({ user: req.user.userId }).sort({ createdAt: -1 });
         res.json(trips);
     } catch (err) {
-        res.status(500).json({ message: "Failed to fetch trips" });
+        console.error("DETAILED ERROR (Get):", err);
+        res.status(500).json({
+            message: "Failed to fetch trips",
+            details: err.message
+        });
     }
 };
 
@@ -53,9 +65,9 @@ exports.getTrips = async (req, res) => {
 exports.updateTrip = async (req, res) => {
     try {
         const updatedTrip = await Trip.findOneAndUpdate(
-            { _id: req.params.id, user: req.user.userId }, // Ensure the user owns this trip
+            { _id: req.params.id, user: req.user.userId },
             req.body,
-            { new: true, runValidators: true } // Returns the modified document
+            { new: true, runValidators: true }
         );
 
         if (!updatedTrip) {
@@ -64,7 +76,11 @@ exports.updateTrip = async (req, res) => {
 
         res.json(updatedTrip);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("DETAILED ERROR (Update):", err);
+        res.status(500).json({
+            error: "Failed to update trip",
+            details: err.message
+        });
     }
 };
 
@@ -82,6 +98,10 @@ exports.deleteTrip = async (req, res) => {
 
         res.json({ message: "Trip deleted successfully" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("DETAILED ERROR (Delete):", err);
+        res.status(500).json({
+            error: "Failed to delete trip",
+            details: err.message
+        });
     }
 };
