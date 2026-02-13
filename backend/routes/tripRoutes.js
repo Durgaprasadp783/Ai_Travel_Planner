@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
 const {
-    generateTrip, // This is your AI-integrated creation function
+    generateTrip,
     getTrips,
     updateTrip,
     deleteTrip
@@ -12,15 +12,15 @@ const {
 /**
  * @swagger
  * tags:
- *   name: Trips
- *   description: Trip Management API
+ *   - name: Trips
+ *     description: Trip Management API
  */
 
 /**
  * @swagger
- * /api/trips:
+ * /api/trips/generate:
  *   post:
- *     summary: Create a new AI-generated trip
+ *     summary: Create a new AI-generated trip with weather data
  *     tags: [Trips]
  *     security:
  *       - bearerAuth: []
@@ -41,14 +41,17 @@ const {
  *                 type: string
  *                 format: date
  *               budget:
- *                 type: number
- *   get:
- *     summary: Get all trips for the logged-in user
- *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
+ *                 type: string
+ *               interests:
+ *                 type: array
+ *                 items:
+ *                   type: string
  */
-router.post("/", auth, generateTrip);
+
+// 1. GENERATE TRIP (Updated path to /generate)
+router.post("/generate", auth, generateTrip);
+
+// 2. GET ALL TRIPS
 router.get("/", auth, getTrips);
 
 /**
@@ -65,6 +68,8 @@ router.get("/", auth, getTrips);
  *     security:
  *       - bearerAuth: []
  */
+
+// 3. UPDATE & DELETE
 router.put("/:id", auth, updateTrip);
 router.delete("/:id", auth, deleteTrip);
 

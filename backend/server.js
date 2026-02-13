@@ -20,7 +20,11 @@ app.use(express.json());
 // =====================
 // Routes
 // =====================
+// This handles authentication (Login/Register)
 app.use("/api/auth", authRoutes);
+
+// This adds the /api/trips prefix to everything inside tripRoutes.js
+// Your POST request will now be: http://localhost:5000/api/trips/generate
 app.use("/api/trips", tripRoutes);
 app.use("/api/maps", mapsRoutes);
 
@@ -33,7 +37,7 @@ const connectDB = async () => {
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
         console.error(`❌ Database Connection Error: ${error.message}`);
-        process.exit(1); // Stop the server if DB connection fails
+        process.exit(1);
     }
 };
 
