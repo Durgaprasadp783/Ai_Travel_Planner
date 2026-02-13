@@ -6,6 +6,8 @@ const cors = require("cors");
 // Import Routes
 const authRoutes = require("./routes/authRoutes");
 const tripRoutes = require("./routes/tripRoutes");
+const mapsRoutes = require("./routes/mapsRoutes.js");
+
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(express.json());
 // =====================
 app.use("/api/auth", authRoutes);
 app.use("/api/trips", tripRoutes);
+app.use("/api/maps", mapsRoutes);
 
 // =====================
 // Database Connection
