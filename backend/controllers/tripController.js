@@ -1,6 +1,7 @@
 const Trip = require("../models/Trip");
 const { getAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
+const { getPlaces } = require("../services/mapsService");
 
 /* 1. CREATE AI-GENERATED TRIP WITH WEATHER */
 exports.generateTrip = async (req, res) => {

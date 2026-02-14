@@ -23,7 +23,7 @@ const tripSchema = new mongoose.Schema({
         type: Date
     },
     budget: {
-        type: Number
+        type: String
     },
     // To store the complex AI-generated plan (JSON/Object)
     itinerary: {
