@@ -2,47 +2,10 @@
 
 import React from 'react';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { Layout, ConfigProvider, Menu, Button } from 'antd';
-import Link from 'next/link';
+import { ConfigProvider, App, theme } from 'antd';
 import './globals.css';
-import { AuthProvider, useAuth } from '../context/AuthContext';
-
-const { Header, Content, Footer } = Layout;
-
-const Navbar = () => {
-  const { user, logout } = useAuth();
-
-  const items = [
-    { key: '1', label: <Link href="/">Home</Link> },
-    { key: '2', label: <Link href="/dashboard">My Trips</Link> },
-    { key: '3', label: <Link href="/plan">Plan Trip</Link> },
-    ...(user ? [
-      { key: '4', label: <Link href="/profile">Profile</Link> },
-      { key: '5', label: <span onClick={logout}>Logout</span> }
-    ] : [
-      { key: '6', label: <Link href="/login">Login</Link> }
-    ])
-  ];
-
-  return (
-    <Header style={{
-      display: 'flex',
-      alignItems: 'center',
-      background: '#001529',
-      padding: '0 24px'
-    }}>
-      <div style={{ color: 'white', fontWeight: 'bold', marginRight: '40px' }}>
-        AI TRAVEL PLANNER
-      </div>
-      <Menu
-        theme="dark"
-        mode="horizontal"
-        style={{ flex: 1, minWidth: 0 }}
-        items={items}
-      />
-    </Header>
-  );
-};
+import { AuthProvider } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -51,30 +14,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AntdRegistry>
           <ConfigProvider
             theme={{
+              algorithm: theme.darkAlgorithm,
               token: {
-                colorPrimary: '#007bff',
+                colorPrimary: '#ff4d4f',
+                colorBgBase: '#0a0a0a',
+                colorBgContainer: '#141414',
+                colorBorder: '#333333',
+                colorText: '#ffffff',
+                colorTextDescription: '#a1a1aa',
                 borderRadius: 8,
               },
             }}
           >
-            <AuthProvider>
-              <Layout style={{ minHeight: '100vh' }}>
+            <App>
+              <AuthProvider>
                 <Navbar />
-                <Content style={{ padding: '24px', background: '#f5f5f5' }}>
-                  <main style={{
-                    background: '#fff',
-                    padding: '24px',
-                    minHeight: '80vh',
-                    borderRadius: '8px'
-                  }}>
-                    {children}
-                  </main>
-                </Content>
-                <Footer style={{ textAlign: 'center' }}>
-                  AI Travel Planner ©2026
-                </Footer>
-              </Layout>
-            </AuthProvider>
+                <main>
+                  {children}
+                </main>
+              </AuthProvider>
+            </App>
           </ConfigProvider>
         </AntdRegistry>
       </body>

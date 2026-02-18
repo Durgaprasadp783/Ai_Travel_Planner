@@ -10,11 +10,13 @@ interface User {
     email: string;
 }
 
+
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (token: string) => void;
     logout: () => void;
+    isBackendConnected: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isBackendConnected, setIsBackendConnected] = useState(true); // Default to true
     const router = useRouter();
 
     useEffect(() => {
@@ -44,11 +47,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
+                setIsBackendConnected(true);
             } else {
                 localStorage.removeItem("token");
+                // If 401, it's connected but not auth. 
+                // But if fetch failed completely, it would go to catch.
             }
         } catch (error) {
             console.error("Auth check failed", error);
+            setIsBackendConnected(false);
         } finally {
             setLoading(false);
         }
@@ -67,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, isBackendConnected }}>
             {children}
         </AuthContext.Provider>
     );

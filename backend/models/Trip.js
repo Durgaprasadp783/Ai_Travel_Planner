@@ -8,9 +8,23 @@ const tripSchema = new mongoose.Schema({
         required: true,
     },
     // Basic travel details
+    // Basic travel details
+    origin: {
+        type: String,
+        required: true
+    },
     destination: {
         type: String,
         required: true
+    },
+    // Coordinates for Map
+    originCoordinates: {
+        type: [Number], // [lng, lat]
+        required: false
+    },
+    destinationCoordinates: {
+        type: [Number], // [lng, lat]
+        required: false
     },
     days: {
         type: Number,

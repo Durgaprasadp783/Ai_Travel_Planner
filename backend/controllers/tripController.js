@@ -6,7 +6,7 @@ const { getPlaces } = require("../services/mapsService");
 /* 1. CREATE AI-GENERATED TRIP WITH WEATHER */
 exports.generateTrip = async (req, res) => {
     try {
-        let { destination, startDate, endDate, days, budget, interests } = req.body;
+        let { origin, destination, startDate, endDate, days, budget, interests } = req.body;
 
         if (!days && startDate && endDate) {
             const start = new Date(startDate);
@@ -15,7 +15,7 @@ exports.generateTrip = async (req, res) => {
             days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
-        const aiPlan = await getAIPlan({ destination, days, budget, interests });
+        const aiPlan = await getAIPlan({ origin, destination, days, budget, interests });
 
         const weatherData = await getForecast(destination, startDate, days);
 
@@ -30,6 +30,7 @@ exports.generateTrip = async (req, res) => {
 
         const trip = await Trip.create({
             user: req.user.userId,
+            origin,
             destination,
             days,
             startDate,

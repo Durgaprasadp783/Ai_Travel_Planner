@@ -1,12 +1,12 @@
 const buildTravelPrompt = (input) => {
-    const { destination, days, budget, interests } = input;
+  const { origin, destination, days, budget, interests } = input;
 
-    const interestText = Array.isArray(interests) && interests.length > 0
-        ? interests.join(", ")
-        : "general sightseeing";
+  const interestText = Array.isArray(interests) && interests.length > 0
+    ? interests.join(", ")
+    : "general sightseeing";
 
-    return `
-    You are a travel assistant. Create a ${days}-day itinerary for a trip to ${destination} with a budget of ${budget}.
+  return `
+    You are a travel assistant. Create a ${days}-day round-trip itinerary starting from ${origin} to ${destination} with a budget of ${budget}.
     The traveler is interested in: ${interestText}.
 
     IMPORTANT: Return the response ONLY as a valid JSON object. Do not include any markdown formatting, backticks, or extra text.

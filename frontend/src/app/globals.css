@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -10,17 +11,100 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-darkBg: #0a0a0a;
+  --color-darkCard: #141414;
+  --color-accentRed: #ff4d4f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Force dark mode styles everywhere */
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: #ffffff;
+  /* Default text color */
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Ant Design Label Override */
+.ant-form-item-label>label {
+  color: #d1d1d1 !important;
+}
+
+/* Luxury Modal Overrides */
+.luxury-modal .ant-modal-content {
+  background-color: #141414 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.luxury-modal .ant-modal-header {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.luxury-modal .ant-modal-title {
+  color: white !important;
+}
+
+/* MAPBOX SEARCH CUSTOMIZATION */
+mapbox-address-autofill {
+  width: 100%;
+}
+
+/* Dropdown Container */
+.mapboxgl-ctrl-geocoder,
+.suggestions-wrapper,
+.mapboxgl-ctrl,
+.mapbox-search-suggestions-menu {
+  background-color: #141414 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
+  font-family: inherit !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 100% !important;
+  z-index: 9999 !important;
+}
+
+/* Individual Suggestions */
+.mapboxgl-ctrl-geocoder--suggestion,
+.mapbox-search-suggestion-item {
+  color: white !important;
+  padding: 12px 16px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover/Active State */
+.mapboxgl-ctrl-geocoder--suggestion:hover,
+.mapboxgl-ctrl-geocoder--suggestion-title:hover,
+.mapboxgl-ctrl-geocoder--suggestion-address:hover,
+.mapbox-search-suggestion-item:hover,
+.mapbox-search-suggestion-item[aria-selected="true"] {
+  background-color: #ff4d4f !important;
+  color: white !important;
+}
+
+/* Text Colors */
+.mapboxgl-ctrl-geocoder--suggestion-title,
+.mapboxgl-ctrl-geocoder--suggestion-address,
+.mapbox-search-suggestion-title,
+.mapbox-search-suggestion-address {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Search Icon / Loading Spinner in Dropdown */
+.mapboxgl-ctrl-geocoder--icon {
+  fill: white !important;
+}
+
+/* Remove Footer/Attribution if intrusive or style it */
+.mapbox-search-attribution {
+  display: none !important;
 }

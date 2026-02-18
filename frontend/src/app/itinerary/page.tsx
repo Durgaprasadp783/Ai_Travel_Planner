@@ -62,8 +62,13 @@ export default function ItineraryPage() {
                         </div>
 
                         {/* 3. RENDER THE MAP HERE */}
-                        <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #f0f0f0' }}>
-                            <TripMap city={cityForMap} />
+                        <div style={{ height: '400px', width: '100%', marginBottom: '20px' }}>
+                            <TripMap
+                                origin={trip.origin}
+                                destination={trip.destination}
+                                originCoordinates={trip.originCoordinates}
+                                destinationCoordinates={trip.destinationCoordinates}
+                            />
                         </div>
 
                         <Button
