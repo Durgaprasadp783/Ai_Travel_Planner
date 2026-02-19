@@ -1,13 +1,14 @@
 const Trip = require("../models/Trip");
 const { getAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
-const { getPlaces } = require("../services/mapsService");
+const { calculateAllocation } = require("../services/budgetService");
 
-/* 1. CREATE AI-GENERATED TRIP WITH WEATHER */
+/* 1. CREATE AI-GENERATED TRIP WITH WEATHER & BUDGET VALIDATION */
 exports.generateTrip = async (req, res) => {
     try {
         let { origin, destination, startDate, endDate, days, budget, interests } = req.body;
 
+        // --- A. DATE CALCULATIONS ---
         if (!days && startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
@@ -15,8 +16,32 @@ exports.generateTrip = async (req, res) => {
             days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
-        const aiPlan = await getAIPlan({ origin, destination, days, budget, interests });
 
+        // --- B. BUDGET SURVIVABILITY CHECK ---
+        // Prevents calling external APIs if the budget is unrealistic
+        const minDailyBudget = 30;
+        if (budget / days < minDailyBudget) {
+            return res.status(400).json({
+                error: "Budget too low",
+                message: `A budget of $${budget} is too low for a ${days}-day trip to ${destination}. We recommend at least $${days * minDailyBudget}.`
+            });
+        }
+
+
+        // --- C. ALLOCATION & AI PLAN GENERATION ---
+        // Get the optimized breakdown (optional: you can pass this into getAIPlan)
+        const budgetAllocation = calculateAllocation(budget, days);
+
+        // Fetch the AI itinerary (The aiService now uses the budget info internally)
+        const aiPlan = await getAIPlan({
+            destination,
+            days,
+            budget,
+            interests,
+            totalBudget: budget // Passing total budget explicitly if needed
+        });
+
+        // --- D. WEATHER INTEGRATION ---
         const weatherData = await getForecast(destination, startDate, days);
 
         if (weatherData && aiPlan.dailyPlan) {
@@ -28,6 +53,7 @@ exports.generateTrip = async (req, res) => {
             });
         }
 
+        // --- E. SAVE TO DATABASE ---
         const trip = await Trip.create({
             user: req.user.userId,
             origin,
@@ -36,10 +62,12 @@ exports.generateTrip = async (req, res) => {
             startDate,
             endDate,
             budget,
+            budgetTier: budgetAllocation.tier, // Storing the calculated tier
             itinerary: aiPlan,
         });
 
         res.status(201).json(trip);
+
     } catch (err) {
         console.error("DETAILED ERROR (Generate):", err);
         res.status(500).json({
