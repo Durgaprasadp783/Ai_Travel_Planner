@@ -1,13 +1,16 @@
-// routes/tripRoutes.js
 const express = require("express");
-const router = express.Router();
-const auth = require("../middleware/authMiddleware");
-const {
-    generateTrip,
-    getTrips,
-    updateTrip,
-    deleteTrip
+const Trip = require("../models/Trip");
+const { 
+    generateTrip, 
+    createTrip, 
+    getAllTrips, 
+    getTripById, 
+    updateTrip, 
+    deleteTrip 
 } = require("../controllers/tripController");
+const auth = require("../middleware/authMiddleware");
+
+const router = express.Router();
 
 /**
  * @swagger
@@ -16,61 +19,54 @@ const {
  *     description: Trip Management API
  */
 
-/**
- * @swagger
- * /api/trips/generate:
- *   post:
- *     summary: Create a new AI-generated trip with weather data
- *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [destination, startDate, endDate]
- *             properties:
- *               destination:
- *                 type: string
- *               startDate:
- *                 type: string
- *                 format: date
- *               endDate:
- *                 type: string
- *                 format: date
- *               budget:
- *                 type: string
- *               interests:
- *                 type: array
- *                 items:
- *                   type: string
- */
-
-// 1. GENERATE TRIP (Updated path to /generate)
+/*
+==================================
+CREATE TRIP (AI GENERATED)
+POST /api/trips/generate
+==================================
+*/
+// Keep the existing AI generation route
 router.post("/generate", auth, generateTrip);
 
-// 2. GET ALL TRIPS
-router.get("/", auth, getTrips);
+/*
+==================================
+CREATE TRIP (MANUAL)
+POST /api/trips
+==================================
+*/
+router.post("/", createTrip);
 
-/**
- * @swagger
- * /api/trips/{id}:
- *   put:
- *     summary: Update a trip
- *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
- *   delete:
- *     summary: Delete a trip
- *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
- */
+/*
+==================================
+GET ALL TRIPS
+GET /api/trips
+==================================
+*/
+router.get("/", getAllTrips);
 
-// 3. UPDATE & DELETE
-router.put("/:id", auth, updateTrip);
-router.delete("/:id", auth, deleteTrip);
+/*
+==================================
+GET SINGLE TRIP
+GET /api/trips/:id
+==================================
+*/
+router.get("/:id", getTripById);
+
+/*
+==================================
+UPDATE TRIP
+PUT /api/trips/:id
+==================================
+*/
+// ✅ Re-runs AI itinerary generation
+router.put("/:id", updateTrip);
+
+/*
+==================================
+DELETE TRIP
+DELETE /api/trips/:id
+==================================
+*/
+router.delete("/:id", deleteTrip);
 
 module.exports = router;

@@ -6,11 +6,12 @@ const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const aiRoutes = require("./routes/aiRoutes");
 const mapsRoutes = require("./routes/mapsRoutes");
-
+const pdfRoutes = require("./routes/pdfRoutes");
 
 require("./db");
 
 const app = express();
+app.use("/api/pdf", pdfRoutes);
 
 // 1. Middleware
 app.use(cors());

@@ -3,52 +3,42 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-// Import Routes
 const authRoutes = require("./routes/authRoutes");
 const tripRoutes = require("./routes/tripRoutes");
-const mapsRoutes = require("./routes/mapsRoutes.js");
-
+const mapsRoutes = require("./routes/mapsRoutes");
+const pdfRoutes = require("./routes/pdfRoutes");
+const budgetRoutes = require("./routes/budgetRoutes");
 
 const app = express();
 
-// =====================
 // Middleware
-// =====================
 app.use(cors());
 app.use(express.json());
 
-// =====================
-// Routes
-// =====================
-// This handles authentication (Login/Register)
-app.use("/api/auth", authRoutes);
+// Debug Middleware: Log all requests
+app.use((req, res, next) => {
+    console.log(`📡 Request received: ${req.method} ${req.url}`);
+    next();
+});
 
-// This adds the /api/trips prefix to everything inside tripRoutes.js
-// Your POST request will now be: http://localhost:5000/api/trips/generate
+// Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/maps", mapsRoutes);
+app.use("/api/pdf", pdfRoutes);
+app.use("/api/budget", budgetRoutes);
 
-// =====================
-// Database Connection
-// =====================
-const connectDB = async () => {
-    try {
-        const conn = await mongoose.connect(process.env.MONGO_URI);
-        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    } catch (error) {
-        console.error(`❌ Database Connection Error: ${error.message}`);
-        process.exit(1);
-    }
-};
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("✅ MongoDB Connected"))
+    .catch((err) => console.log("❌ DB Error:", err));
 
-// Execute Database Connection
-connectDB();
-
-// =====================
-// Start Server
-// =====================
 const PORT = process.env.PORT || 5000;
 
+// ✅ Global Error Handler
+const errorHandler = require("./middleware/errorMiddleware");
+app.use(errorHandler);
+
 app.listen(PORT, () => {
-    console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });

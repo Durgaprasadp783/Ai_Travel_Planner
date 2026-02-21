@@ -1,48 +1,30 @@
 const mongoose = require("mongoose");
 
-const tripSchema = new mongoose.Schema({
-    // Linking the trip to a specific User document in your database
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
+const tripSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: false
+        },
+        destination: {
+            type: String,
+            required: true
+        },
+        days: {
+            type: Number,
+            required: true
+        },
+        budget: {
+            type: Number,
+            required: true
+        },
+        itinerary: {
+            type: Object,
+            required: true
+        }
     },
-    // Basic travel details
-    // Basic travel details
-    origin: {
-        type: String,
-        required: true
-    },
-    destination: {
-        type: String,
-        required: true
-    },
-    // Coordinates for Map
-    originCoordinates: {
-        type: [Number], // [lng, lat]
-        required: false
-    },
-    destinationCoordinates: {
-        type: [Number], // [lng, lat]
-        required: false
-    },
-    days: {
-        type: Number,
-        required: true
-    },
-    startDate: {
-        type: Date
-    },
-    endDate: {
-        type: Date
-    },
-    budget: {
-        type: String
-    },
-    // To store the complex AI-generated plan (JSON/Object)
-    itinerary: {
-        type: Object
-    }
-}, { timestamps: true });
+    { timestamps: true }
+);
 
 module.exports = mongoose.model("Trip", tripSchema);

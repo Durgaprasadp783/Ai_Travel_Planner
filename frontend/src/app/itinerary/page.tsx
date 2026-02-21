@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Typography, Card, Timeline, Tag, Button, Empty, Row, Col } from 'antd';
-import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PrinterOutlined, DownloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 // 1. Import Dynamic to load the map only on the client side
 import dynamic from 'next/dynamic';
@@ -15,6 +15,37 @@ const TripMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 export default function ItineraryPage() {
     const [trip, setTrip] = useState<any>(null);
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadPDF = async () => {
+        if (!trip) return;
+        setDownloading(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/pdf/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(trip),
+            });
+
+            if (!response.ok) throw new Error('Failed to generate PDF');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Itinerary_${trip.destination || 'Trip'}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            alert('Failed to download PDF. Ensure Backend (port 5000) and AI Service (port 8000) are running.');
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     // LOGIC: Read the data we saved on Day 9
     useEffect(() => {
@@ -78,6 +109,16 @@ export default function ItineraryPage() {
                             onClick={() => window.print()}
                         >
                             Print Itinerary
+                        </Button>
+
+                        <Button
+                            icon={<DownloadOutlined />}
+                            style={{ marginTop: '10px' }}
+                            block
+                            onClick={handleDownloadPDF}
+                            loading={downloading}
+                        >
+                            Download PDF
                         </Button>
                     </Card>
                 </Col>
