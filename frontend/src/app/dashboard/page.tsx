@@ -6,6 +6,7 @@ import { DeleteOutlined, EyeOutlined, PlusOutlined, CalendarOutlined, WalletOutl
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import EmptyState from '@/components/EmptyState';
 
 const { Title, Text } = Typography;
 
@@ -75,7 +76,7 @@ export default function DashboardPage() {
 
     return (
         <ProtectedRoute>
-            <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh' }}>
+            <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
                 <div className="flex justify-between items-center mb-8">
                     <Title level={2} style={{ color: 'white', margin: 0 }}>My Adventures</Title>
                     <Link href="/plan">
@@ -98,7 +99,7 @@ export default function DashboardPage() {
                 ) : trips.length > 0 ? (
                     <Row gutter={[24, 24]}>
                         {trips.map((trip: any) => (
-                            <Col xs={24} sm={12} lg={8} key={trip._id || Math.random()}>
+                            <Col xs={24} md={12} lg={8} key={trip._id || Math.random()}>
                                 <div className="glass-effect rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform duration-300 flex flex-col h-full group">
                                     {/* Image Section */}
                                     <div className="h-48 overflow-hidden relative">
@@ -133,8 +134,7 @@ export default function DashboardPage() {
                                                 <Button
                                                     block
                                                     icon={<EyeOutlined />}
-                                                    className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/40"
-                                                    style={{ height: '40px', borderRadius: '10px' }}
+                                                    className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/40 !h-12 !rounded-xl"
                                                 >
                                                     View Itinerary
                                                 </Button>
@@ -150,8 +150,7 @@ export default function DashboardPage() {
                                                 <Button
                                                     danger
                                                     icon={<DeleteOutlined />}
-                                                    className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30"
-                                                    style={{ height: '40px', width: '40px', borderRadius: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                                    className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30 !h-12 !w-12 !rounded-xl flex justify-center items-center"
                                                 />
                                             </Popconfirm>
                                         </div>
@@ -161,24 +160,7 @@ export default function DashboardPage() {
                         ))}
                     </Row>
                 ) : (
-                    <div className="glass-effect rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-                        <div className="bg-white/5 p-6 rounded-full mb-6">
-                            <CompassOutlined style={{ fontSize: '64px', color: '#ff4d4f' }} />
-                        </div>
-                        <Title level={2} style={{ color: 'white', marginBottom: '16px' }}>Ready for your next journey?</Title>
-                        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: '18px', maxWidth: '400px', marginBottom: '32px' }}>
-                            You haven't planned any trips yet. Let AI design your perfect luxury escape.
-                        </Text>
-                        <Link href="/plan">
-                            <Button
-                                type="primary"
-                                size="large"
-                                className="!bg-[#ff4d4f] !border-[#ff4d4f] hover:!bg-[#ff7875] !h-12 !px-8 !text-lg !rounded-xl"
-                            >
-                                Plan Your First Adventure
-                            </Button>
-                        </Link>
-                    </div>
+                    <EmptyState />
                 )}
             </div>
         </ProtectedRoute>

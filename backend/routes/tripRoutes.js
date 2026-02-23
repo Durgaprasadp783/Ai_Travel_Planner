@@ -1,12 +1,14 @@
 const express = require("express");
 const Trip = require("../models/Trip");
-const { 
-    generateTrip, 
-    createTrip, 
-    getAllTrips, 
-    getTripById, 
-    updateTrip, 
-    deleteTrip 
+const {
+    generateTrip,
+    createTrip,
+    getAllTrips,
+    getTripById,
+    updateTrip,
+    deleteTrip,
+    getSharedTrip,
+    regenerateTrip
 } = require("../controllers/tripController");
 const auth = require("../middleware/authMiddleware");
 
@@ -54,6 +56,14 @@ router.get("/:id", getTripById);
 
 /*
 ==================================
+GET SHARED TRIP (PUBLIC)
+GET /api/trips/share/:id
+==================================
+*/
+router.get("/share/:id", getSharedTrip);
+
+/*
+==================================
 UPDATE TRIP
 PUT /api/trips/:id
 ==================================
@@ -68,5 +78,13 @@ DELETE /api/trips/:id
 ==================================
 */
 router.delete("/:id", deleteTrip);
+
+/*
+==================================
+REGENERATE TRIP
+POST /api/trips/:id/regenerate
+==================================
+*/
+router.post("/:id/regenerate", auth, regenerateTrip);
 
 module.exports = router;

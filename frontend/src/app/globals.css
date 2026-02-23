@@ -31,6 +31,40 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
+/* Ant Design Message/Notification Dark Theme Fix */
+.ant-message-notice-content,
+.ant-notification-notice {
+  background-color: #141414 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.ant-notification-notice-message,
+.ant-notification-notice-description {
+  color: white !important;
+}
+
+/* Luxury Skeleton Theme */
+.ant-skeleton .ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton .ant-skeleton-content .ant-skeleton-paragraph>li {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.ant-skeleton.ant-skeleton-active .ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton.ant-skeleton-active .ant-skeleton-content .ant-skeleton-paragraph>li {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 37%, rgba(255, 255, 255, 0.05) 63%) !important;
+  background-size: 400% 100% !important;
+}
+
+.ant-skeleton-button {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.ant-skeleton-button.ant-skeleton-active {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 37%, rgba(255, 255, 255, 0.05) 63%) !important;
+  background-size: 400% 100% !important;
+}
+
 /* Ant Design Label Override */
 .ant-form-item-label>label {
   color: #d1d1d1 !important;

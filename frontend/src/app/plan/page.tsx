@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Form, DatePicker, InputNumber, Button, Card, Typography, message } from 'antd';
+import { Form, DatePicker, InputNumber, Button, Card, Typography, Row, Col, message } from 'antd';
 import { CompassOutlined, SendOutlined } from '@ant-design/icons';
 import { PlaneTakeoff, MapPin } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,11 +12,13 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 // NEW: Import the Autocomplete Component
 import LocationAutocomplete from '@/components/LocationAutocomplete';
+import { App } from 'antd';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 function PlanTripContent() {
+    const { message, notification } = App.useApp();
     const [form] = Form.useForm();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -86,109 +88,100 @@ function PlanTripContent() {
             {loading ? (
                 <LoadingSkeleton />
             ) : (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <Card style={{ width: 500, borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                            <CompassOutlined style={{ fontSize: '48px', color: '#ff4d4f' }} />
-                            <Title level={2} style={{ marginTop: '16px', color: 'white' }}>Plan Your Trip</Title>
-                            <Text style={{ color: 'rgba(255,255,255,0.7)' }}>Tell the AI where you want to go</Text>
-                        </div>
+                <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
+                    <div className="glass-effect rounded-[40px] p-6 lg:p-12 mb-10 border border-white/5">
+                        <Title level={1} className="!text-white !mb-4 md:!text-5xl text-3xl font-black">
+                            Plan Your Next <span className="text-[#ff4d4f]">Luxury Escape</span>
+                        </Title>
+                        <Text className="!text-white/60 text-lg block mb-8">
+                            Let our AI design a bespoke journey tailored exclusively to your tastes.
+                        </Text>
 
                         <Form
                             form={form}
                             layout="vertical"
                             onFinish={onFinish}
                             onFinishFailed={onFinishFailed}
-                            autoComplete="off"
+                            requiredMark={false}
+                            className="luxury-form"
                         >
-                            {/* Search Start Location */}
-                            <Form.Item
-                                name="origin"
-                                label={<span style={{ color: 'white' }}>Starting From (Origin)</span>}
-                                rules={[{ required: true, message: 'Please enter a starting location!' }]}
-                            >
-                                <LocationAutocomplete
-                                    prefix={<PlaneTakeoff size={18} color="rgba(255,255,255,0.5)" />}
-                                    placeholder="e.g. New York, USA"
-                                    className={inputStyle}
-                                    onSelectLocation={(loc) => setOriginCoords(loc.coordinates)}
-                                />
-                            </Form.Item>
+                            <Row gutter={[24, 0]}>
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="Starting Point"
+                                        name="origin"
+                                        rules={[{ required: true, message: 'Where are you starting from?' }]}
+                                    >
+                                        <LocationAutocomplete
+                                            placeholder="e.g. New York, USA"
+                                            onSelectLocation={(loc) => {
+                                                setOriginCoords(loc.coordinates);
+                                            }}
+                                            className="!bg-white/5 !border-white/10 !text-white !h-12 !rounded-xl"
+                                        />
+                                    </Form.Item>
+                                </Col>
 
-                            {/* VALIDATION 1: Destination is Required */}
-                            <Form.Item
-                                name="destination"
-                                label={<span style={{ color: 'white' }}>Destination</span>}
-                                rules={[{ required: true, message: 'Please enter a destination!' }]}
-                            >
-                                <LocationAutocomplete
-                                    prefix={<MapPin size={18} color="rgba(255,255,255,0.5)" />}
-                                    placeholder="e.g. Paris, France"
-                                    className={inputStyle}
-                                    onSelectLocation={(loc) => setDestCoords(loc.coordinates)}
-                                />
-                            </Form.Item>
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="Destination"
+                                        name="destination"
+                                        rules={[{ required: true, message: 'Where do you want to go?' }]}
+                                    >
+                                        <LocationAutocomplete
+                                            placeholder="e.g. Paris, France"
+                                            onSelectLocation={(loc) => {
+                                                setDestCoords(loc.coordinates);
+                                            }}
+                                            className="!bg-white/5 !border-white/10 !text-white !h-12 !rounded-xl"
+                                        />
+                                    </Form.Item>
+                                </Col>
 
-                            {/* VALIDATION 2: Dates are Required */}
-                            <Form.Item
-                                name="dates"
-                                label={<span style={{ color: 'white' }}>Travel Dates</span>}
-                                rules={[{ required: true, message: 'Select your travel dates' }]}
-                            >
-                                <RangePicker
-                                    style={{ width: '100%', height: '48px' }}
-                                    className="!bg-white/5 !border-white/10 !rounded-xl"
-                                    popupClassName="luxury-datepicker-popup"
-                                />
-                            </Form.Item>
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="Budget (USD)"
+                                        name="budget"
+                                        rules={[{ required: true, message: 'What is your budget?' }]}
+                                    >
+                                        <InputNumber
+                                            prefix={<span className="text-gray-400">$</span>}
+                                            style={{ width: '100%' }}
+                                            placeholder="5000"
+                                            className="!bg-white/5 !border-white/10 !text-white !h-12 flex items-center !rounded-xl"
+                                        />
+                                    </Form.Item>
+                                </Col>
 
-                            {/* VALIDATION 3: Advanced Budget Rules (Step 4 specific) */}
-                            <Form.Item
-                                name="budget"
-                                label={<span style={{ color: 'white' }}>Budget ($)</span>}
-                                rules={[
-                                    { required: true, message: 'Please enter a budget!' },
-                                    {
-                                        type: 'number',
-                                        min: 50,
-                                        message: 'Budget must be at least $50 for a trip!'
-                                    }
-                                ]}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    prefix="$"
-                                    placeholder="e.g. 500"
-                                    className={inputStyle}
-                                />
-                            </Form.Item>
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="Travel Dates"
+                                        name="dates"
+                                        rules={[{ required: true, message: 'When are you traveling?' }]}
+                                    >
+                                        <RangePicker
+                                            className="!w-full !bg-white/5 !border-white/10 !h-12 !rounded-xl"
+                                            placeholder={['Start Date', 'End Date']}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                            <Form.Item style={{ marginTop: '32px' }}>
+                            <Form.Item className="mt-8 mb-0">
                                 <Button
                                     type="primary"
                                     htmlType="submit"
                                     block
                                     size="large"
-                                    loading={loading} // Day 11: Visual feedback
-                                    icon={<SendOutlined />}
-                                    style={{
-                                        height: '50px',
-                                        background: '#ff4d4f',
-                                        borderColor: '#ff4d4f',
-                                        fontWeight: 'bold',
-                                        borderRadius: '12px'
-                                    }}
+                                    loading={loading}
+                                    className="!bg-[#ff4d4f] !border-[#ff4d4f] hover:!bg-[#ff7875] !h-16 !rounded-2xl !text-xl font-bold shadow-2xl shadow-[#ff4d4f]/20 transition-all hover:scale-[1.01]"
                                 >
-                                    {loading ? 'AI is Thinking...' : 'Generate Itinerary'}
+                                    {loading ? 'AI is Thinking...' : 'Generate My Perfect Journey'}
                                 </Button>
                             </Form.Item>
                         </Form>
-                    </Card>
-                </motion.div>
+                    </div>
+                </div>
             )}
         </div>
     );

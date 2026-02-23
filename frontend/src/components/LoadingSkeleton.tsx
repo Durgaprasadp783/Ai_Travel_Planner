@@ -3,7 +3,7 @@
 import React from 'react';
 import { Skeleton } from 'antd';
 
-export default function LoadingSkeleton() {
+export default function LoadingSkeleton({ message = "Curating your perfect trip..." }: { message?: string }) {
     return (
         <div className="flex flex-col items-center justify-center p-8 space-y-6 w-full max-w-2xl mx-auto">
             {/* Glass Container */}
@@ -27,7 +27,7 @@ export default function LoadingSkeleton() {
                 {/* Loading Text */}
                 <div className="mt-8 text-center">
                     <div className="h-4 bg-white/20 rounded w-48 mx-auto mb-2"></div>
-                    <p className="text-white/50 text-sm">Curating your perfect trip...</p>
+                    <p className="text-white/50 text-sm">{message}</p>
                 </div>
             </div>
         </div>

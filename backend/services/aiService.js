@@ -82,6 +82,66 @@ exports.getAIPlan = async (tripData) => {
 };
 
 /**
+ * Regenerates an existing itinerary based on user instructions.
+ */
+exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
+    const { destination, days, budget, itinerary } = existingTrip;
+
+    try {
+        const prompt = `
+            Here is the current itinerary for a ${days}-day trip to ${destination} with a budget of ${budget}:
+            ${JSON.stringify(itinerary, null, 2)}
+
+            Please modify it based on this feedback: "${userInstruction}".
+            
+            STRICT RULES:
+            - Keep the same destination and duration.
+            - Adjust the activities, titles, or overview as requested.
+            - Maintain the same budget constraints.
+            - Return the response ONLY as a valid JSON object.
+            
+            The JSON structure must be exactly as follows:
+            {
+              "destination": "${destination}",
+              "duration": "${days} days",
+              "budget": "${budget}",
+              "overview": "A brief summary of the updated trip.",
+              "dailyPlan": [
+                {
+                  "day": 1,
+                  "title": "Day theme or title",
+                  "activities": ["Activity 1", "Activity 2", "Activity 3"]
+                }
+              ]
+            }
+        `;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        const start = responseText.indexOf('{');
+        const end = responseText.lastIndexOf('}');
+
+        if (start === -1 || end === -1 || start >= end) {
+            throw new Error("No valid JSON found in AI response");
+        }
+
+        const cleanJson = responseText.substring(start, end + 1);
+        const parsedData = JSON.parse(cleanJson);
+
+        return {
+            ...parsedData,
+            budgetAllocation: existingTrip.itinerary.budgetAllocation // reuse existing budget info
+        };
+
+    } catch (error) {
+        console.error("Gemini AI Regeneration Error:", error.message);
+        throw error;
+    }
+};
+
+/**
  * Helper for direct model testing or raw text responses
  */
 exports.getGeminiResponse = async (prompt) => {
