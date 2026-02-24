@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Typography, Row, Col, Button, Popconfirm, message, Empty, Spin } from 'antd';
 import { DeleteOutlined, EyeOutlined, PlusOutlined, CalendarOutlined, WalletOutlined, CompassOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import EmptyState from '@/components/EmptyState';
@@ -100,7 +101,11 @@ export default function DashboardPage() {
                     <Row gutter={[24, 24]}>
                         {trips.map((trip: any) => (
                             <Col xs={24} md={12} lg={8} key={trip._id || Math.random()}>
-                                <div className="glass-effect rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform duration-300 flex flex-col h-full group">
+                                <motion.div
+                                    whileHover={{ scale: 1.03, y: -5 }}
+                                    transition={{ type: 'spring', stiffness: 300 }}
+                                    className="glass-effect rounded-3xl overflow-hidden flex flex-col h-full group"
+                                >
                                     {/* Image Section */}
                                     <div className="h-48 overflow-hidden relative">
                                         <img
@@ -155,7 +160,7 @@ export default function DashboardPage() {
                                             </Popconfirm>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             </Col>
                         ))}
                     </Row>

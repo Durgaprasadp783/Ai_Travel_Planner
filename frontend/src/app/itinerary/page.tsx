@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Card, Timeline, Tag, Button, Empty, Row, Col, message } from 'antd';
 import { ArrowLeftOutlined, PrinterOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
 import { Share2, Wand2 } from 'lucide-react';
 import Link from 'next/link';
 // 1. Import Dynamic to load the map only on the client side
@@ -141,6 +142,29 @@ export default function ItineraryPage() {
     // Extract just the city name for the map (e.g., "Paris, France" -> "Paris")
     const cityForMap = trip.destination ? trip.destination.split(',')[0] : 'Paris';
 
+    // Animation Variants
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                type: 'spring',
+                stiffness: 100
+            }
+        }
+    } as const;
+
     return (
         <div className="max-w-[1200px] mx-auto p-4 lg:p-10">
             <div className="flex justify-between items-center mb-6">
@@ -219,26 +243,32 @@ export default function ItineraryPage() {
                         title={<span className="text-white text-lg">Daily Schedule</span>}
                         className="glass-effect !bg-black/40 !border-white/10 !rounded-3xl h-full border border-white/5"
                     >
-                        <Timeline
-                            mode="left"
-                            items={trip.itinerary?.dailyPlan?.map((day: any) => ({
-                                label: <span className="text-gray-400 font-medium">Day {day.day}</span>,
-                                children: (
-                                    <div className="text-white pb-4">
-                                        <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
-                                        <ul className="pl-4 list-disc space-y-2 text-sm text-gray-300">
-                                            {day.activities.map((act: string, idx: number) => (
-                                                <li key={idx} className="leading-relaxed">{act}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )
-                            })) || [
-                                    { label: <span className="text-gray-400">Day 1</span>, children: <span className="text-white">Arrival, Hotel Check-in, and City Walk</span>, color: 'blue' },
-                                    { label: <span className="text-gray-400">Day 2</span>, children: <span className="text-white">Major Landmark Visit</span> },
-                                    { label: <span className="text-gray-400">Day 3</span>, children: <span className="text-white">Museum Exploration</span> },
-                                ]}
-                        />
+                        <motion.div
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                        >
+                            <Timeline
+                                mode="left"
+                                items={trip.itinerary?.dailyPlan?.map((day: any) => ({
+                                    label: <span className="text-gray-400 font-medium">Day {day.day}</span>,
+                                    children: (
+                                        <motion.div variants={itemVariants} className="text-white pb-4">
+                                            <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
+                                            <ul className="pl-4 list-disc space-y-2 text-sm text-gray-300">
+                                                {day.activities.map((act: string, idx: number) => (
+                                                    <li key={idx} className="leading-relaxed">{act}</li>
+                                                ))}
+                                            </ul>
+                                        </motion.div>
+                                    )
+                                })) || [
+                                        { label: <span className="text-gray-400">Day 1</span>, children: <span className="text-white">Arrival, Hotel Check-in, and City Walk</span>, color: 'blue' },
+                                        { label: <span className="text-gray-400">Day 2</span>, children: <span className="text-white">Major Landmark Visit</span> },
+                                        { label: <span className="text-gray-400">Day 3</span>, children: <span className="text-white">Museum Exploration</span> },
+                                    ]}
+                            />
+                        </motion.div>
                     </Card>
                 </Col>
             </Row>

@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --background: #0a0a0a;
   --foreground: #ffffff;
@@ -22,6 +26,16 @@ body {
   color: #ffffff;
   /* Default text color */
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Luxury Button Transitions */
+.ant-btn-primary {
+  transition: all 0.3s ease-in-out !important;
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
 }
 
 .glass-effect {
