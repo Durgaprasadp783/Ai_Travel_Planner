@@ -3,7 +3,7 @@ const { tripSchema } = require("../validators/tripValidator");
 const { getAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
 const { calculateAllocation } = require("../services/budgetService");
-const redisClient = require("../config/redisClient");
+const { redisClient, isRedisReady } = require("../config/redisClient");
 
 /* 1. CREATE AI-GENERATED TRIP WITH WEATHER & BUDGET VALIDATION */
 exports.generateTrip = async (req, res) => {
@@ -110,12 +110,13 @@ exports.getTripById = async (req, res) => {
         const { id } = req.params;
         const cacheKey = `trip:${id}`;
 
-        // 1️⃣ Check cache
-        const cachedTrip = redisClient.isOpen ? await redisClient.get(cacheKey) : null;
-
-        if (cachedTrip) {
-            console.log("⚡ Serving from Redis cache");
-            return res.status(200).json(JSON.parse(cachedTrip));
+        // 1️⃣ Check cache (if Redis is available)
+        if (isRedisReady()) {
+            const cachedTrip = await redisClient.get(cacheKey);
+            if (cachedTrip) {
+                console.log("⚡ Serving from Redis cache");
+                return res.status(200).json(JSON.parse(cachedTrip));
+            }
         }
 
         // 2️⃣ Fetch from DB
@@ -125,8 +126,8 @@ exports.getTripById = async (req, res) => {
             return res.status(404).json({ message: "Trip not found" });
         }
 
-        // 3️⃣ Store in cache (Expire in 10 minutes)
-        if (redisClient.isOpen) {
+        // 3️⃣ Store in cache (if Redis is available)
+        if (isRedisReady()) {
             await redisClient.setEx(
                 cacheKey,
                 600,
@@ -134,6 +135,7 @@ exports.getTripById = async (req, res) => {
             );
             console.log("💾 Data cached in Redis");
         }
+
         res.status(200).json(trip);
 
     } catch (error) {
@@ -183,8 +185,8 @@ exports.updateTrip = async (req, res) => {
 
         await existingTrip.save();
 
-        // 🧹 Clear cache
-        if (redisClient.isOpen) {
+        // 🧹 Clear cache (if Redis is available)
+        if (isRedisReady()) {
             await redisClient.del(`trip:${id}`);
         }
 
@@ -262,7 +264,7 @@ exports.regenerateTrip = async (req, res) => {
         await existingTrip.save();
 
         // 4. Clear Cache
-        if (redisClient.isOpen) {
+        if (isRedisReady()) {
             await redisClient.del(`trip:${id}`);
         }
 
