@@ -7,10 +7,17 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
     const url = `${BACKEND_URL}${endpoint}`;
 
     try {
+        const token = localStorage.getItem('token');
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers,
             ...options,
         });
 

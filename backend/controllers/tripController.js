@@ -3,7 +3,7 @@ const { tripSchema } = require("../validators/tripValidator");
 const { getAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
 const { calculateAllocation } = require("../services/budgetService");
-const redisClient = require("../config/redis");
+const redisClient = require("../config/redisClient");
 
 /* 1. CREATE AI-GENERATED TRIP WITH WEATHER & BUDGET VALIDATION */
 exports.generateTrip = async (req, res) => {
@@ -134,13 +134,12 @@ exports.getTripById = async (req, res) => {
         const { id } = req.params;
         const cacheKey = `trip:${id}`;
 
-        // 1️⃣ Check cache (if Redis is ready)
-        if (redisClient.isReady) {
-            const cachedTrip = await redisClient.get(cacheKey);
-            if (cachedTrip) {
-                console.log("⚡ Serving from Redis cache");
-                return res.status(200).json(JSON.parse(cachedTrip));
-            }
+        // 1️⃣ Check cache
+        const cachedTrip = redisClient.isOpen ? await redisClient.get(cacheKey) : null;
+
+        if (cachedTrip) {
+            console.log("⚡ Serving from Redis cache");
+            return res.status(200).json(JSON.parse(cachedTrip));
         }
 
         // 2️⃣ Fetch from DB
@@ -150,8 +149,8 @@ exports.getTripById = async (req, res) => {
             return res.status(404).json({ message: "Trip not found" });
         }
 
-        // 3️⃣ Store in cache (if Redis is ready)
-        if (redisClient.isReady) {
+        // 3️⃣ Store in cache (Expire in 10 minutes)
+        if (redisClient.isOpen) {
             await redisClient.setEx(
                 cacheKey,
                 600,
@@ -208,8 +207,8 @@ exports.updateTrip = async (req, res) => {
 
         await existingTrip.save();
 
-        // 🧹 Clear cache (if Redis is ready)
-        if (redisClient.isReady) {
+        // 🧹 Clear cache
+        if (redisClient.isOpen) {
             await redisClient.del(`trip:${id}`);
         }
 
@@ -243,6 +242,64 @@ exports.deleteTrip = async (req, res) => {
         res.status(500).json({
             error: "Failed to delete trip",
             details: err.message
+        });
+    }
+};
+/* 5. GET SHARED TRIP (PUBLIC) */
+exports.getSharedTrip = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const trip = await Trip.findById(id).select("-userId -user");
+        if (!trip) {
+            return res.status(404).json({ message: "Shared trip not found" });
+        }
+        res.status(200).json(trip);
+    } catch (error) {
+        res.status(500).json({
+            message: "Failed to fetch shared trip",
+            error: error.message
+        });
+    }
+};
+/* 6. REGENERATE TRIP ITINERARY based on user instructions */
+exports.regenerateTrip = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userInstruction } = req.body;
+
+        if (!userInstruction) {
+            return res.status(400).json({ error: "userInstruction is required" });
+        }
+
+        // 1. Fetch current trip
+        const existingTrip = await Trip.findById(id);
+        if (!existingTrip) {
+            return res.status(404).json({ error: "Trip not found" });
+        }
+
+        // 2. Call AI service to regenerate
+        const { regenerateAIPlan } = require("../services/aiService");
+        const newItinerary = await regenerateAIPlan(existingTrip, userInstruction);
+
+        // 3. Update trip in DB
+        existingTrip.itinerary = newItinerary;
+        await existingTrip.save();
+
+        // 4. Clear Cache
+        if (redisClient.isOpen) {
+            await redisClient.del(`trip:${id}`);
+        }
+
+        res.status(200).json({
+            message: "Trip regenerated successfully",
+            trip: existingTrip
+        });
+
+    } catch (error) {
+        console.error("Regenerate Trip Error:", error);
+        res.status(500).json({
+            error: "Failed to regenerate trip",
+            details: error.message
         });
     }
 };
