@@ -11,21 +11,14 @@ const redisClient = createClient({
     }
 });
 
+let isRedisReady = false;
+
 redisClient.on("error", (err) => {
-<<<<<<< Updated upstream
     // Suppress logs slightly to avoid flooding but keep track of state
-    if (redisClient.isOpen) {
+    if (redisClient.isOpen && isRedisReady) {
         console.error("Redis Client Error:", err.message);
     }
 });
-=======
-    if (isRedisReady) {
-        console.error("Redis Client Error", err);
-    }
-});
-
-let isRedisReady = false;
->>>>>>> Stashed changes
 
 (async () => {
     try {
@@ -33,13 +26,10 @@ let isRedisReady = false;
         console.log("✅ Redis Connected");
         isRedisReady = true;
     } catch (err) {
-<<<<<<< Updated upstream
-        console.error("⚠️ Redis Connection Failed. Caching will be disabled.");
-=======
         console.error("❌ Redis Connection Failed. Application will run without caching.");
         isRedisReady = false;
->>>>>>> Stashed changes
     }
 })();
 
 module.exports = { redisClient, isRedisReady: () => isRedisReady };
+

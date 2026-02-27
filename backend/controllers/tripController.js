@@ -1,12 +1,16 @@
 const Trip = require("../models/Trip");
 const { tripSchema } = require("../validators/tripValidator");
-const { getAIPlan } = require("../services/aiService");
+const { getAIPlan, regenerateAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
 const { calculateAllocation } = require("../services/budgetService");
 const { redisClient, isRedisReady } = require("../config/redisClient");
+const { optimizeDailyRoute } = require("../utils/routeOptimizer");
 
-/* 1. CREATE AI-GENERATED TRIP WITH WEATHER & BUDGET VALIDATION */
-exports.generateTrip = async (req, res) => {
+/**
+ * 1. CREATE AI-GENERATED TRIP 
+ * Combined: Budget Check + AI Generation + Route Optimization + Weather + DB Save
+ */
+exports.generateTrip = async (req, res, next) => {
     try {
         let { origin, destination, startDate, endDate, days, budget, interests } = req.body;
 
@@ -18,9 +22,7 @@ exports.generateTrip = async (req, res) => {
             days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
-
         // --- B. BUDGET SURVIVABILITY CHECK ---
-        // Prevents calling external APIs if the budget is unrealistic
         const minDailyBudget = 30;
         if (budget / days < minDailyBudget) {
             return res.status(400).json({
@@ -29,33 +31,36 @@ exports.generateTrip = async (req, res) => {
             });
         }
 
-
         // --- C. ALLOCATION & AI PLAN GENERATION ---
-        // Get the optimized breakdown (optional: you can pass this into getAIPlan)
         const budgetAllocation = calculateAllocation(budget, days);
 
-        // Fetch the AI itinerary (The aiService now uses the budget info internally)
         const aiPlan = await getAIPlan({
             destination,
             days,
             budget,
             interests,
-            totalBudget: budget // Passing total budget explicitly if needed
+            totalBudget: budget
         });
 
-        // --- D. WEATHER INTEGRATION ---
+        // --- D. ROUTE OPTIMIZATION ---
+        // Enhance the AI plan by sorting activities for better travel flow
+        if (aiPlan.dailyPlan) {
+            for (let day of aiPlan.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, destination);
+            }
+        }
+
+        // --- E. WEATHER INTEGRATION ---
         const weatherData = await getForecast(destination, startDate, days);
 
         if (weatherData && aiPlan.dailyPlan) {
-            aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => {
-                return {
-                    ...dayPlan,
-                    weather: weatherData[index] || "No forecast available"
-                };
-            });
+            aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => ({
+                ...dayPlan,
+                weather: weatherData[index] || "No forecast available"
+            }));
         }
 
-        // --- E. SAVE TO DATABASE ---
+        // --- F. SAVE TO DATABASE ---
         const trip = await Trip.create({
             user: req.user.userId,
             origin,
@@ -64,7 +69,7 @@ exports.generateTrip = async (req, res) => {
             startDate,
             endDate,
             budget,
-            budgetTier: budgetAllocation.tier, // Storing the calculated tier
+            budgetTier: budgetAllocation.tier,
             itinerary: aiPlan,
         });
 
@@ -72,112 +77,79 @@ exports.generateTrip = async (req, res) => {
 
     } catch (err) {
         console.error("DETAILED ERROR (Generate):", err);
-        res.status(500).json({
-            error: "Failed to build itinerary with weather",
-            details: err.message
-        });
+        next(err);
     }
 };
 
-/* 2. GET ALL TRIPS */
-exports.getAllTrips = async (req, res) => {
+/**
+ * 2. GET ALL TRIPS (For Logged-in User)
+ */
+exports.getAllTrips = async (req, res, next) => {
     try {
-        const trips = await Trip.find().sort({ createdAt: -1 });
+        const trips = await Trip.find({ user: req.user.userId }).sort({ createdAt: -1 });
         res.json(trips);
     } catch (err) {
-        console.error("DETAILED ERROR (Get):", err);
-        res.status(500).json({
-            message: "Failed to fetch trips",
-            details: err.message
-        });
+        next(err);
     }
 };
 
-/* 2.1 CREATE TRIP (MANUAL) */
-exports.createTrip = async (req, res) => {
-    try {
-        const newTrip = new Trip(req.body);
-        const savedTrip = await newTrip.save();
-        res.status(201).json(savedTrip);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-/* 2.2 GET SINGLE TRIP (WITH REDIS CACHE) */
-exports.getTripById = async (req, res) => {
+/**
+ * 3. GET SINGLE TRIP (With Redis Cache)
+ */
+exports.getTripById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const cacheKey = `trip:${id}`;
 
-        // 1️⃣ Check cache (if Redis is available)
         if (isRedisReady()) {
             const cachedTrip = await redisClient.get(cacheKey);
             if (cachedTrip) {
-                console.log("⚡ Serving from Redis cache");
                 return res.status(200).json(JSON.parse(cachedTrip));
             }
         }
 
-        // 2️⃣ Fetch from DB
         const trip = await Trip.findById(id);
+        if (!trip) return res.status(404).json({ message: "Trip not found" });
 
-        if (!trip) {
-            return res.status(404).json({ message: "Trip not found" });
-        }
-
-        // 3️⃣ Store in cache (if Redis is available)
         if (isRedisReady()) {
-            await redisClient.setEx(
-                cacheKey,
-                600,
-                JSON.stringify(trip)
-            );
-            console.log("💾 Data cached in Redis");
+            await redisClient.setEx(cacheKey, 600, JSON.stringify(trip));
         }
 
         res.status(200).json(trip);
-
-    } catch (error) {
-        res.status(500).json({
-            message: "Failed to fetch trip",
-            error: error.message
-        });
+    } catch (err) {
+        next(err);
     }
 };
 
-// ✅ Updated updateTrip: Re-runs AI itinerary generation
-exports.updateTrip = async (req, res) => {
+/**
+ * 4. UPDATE TRIP (Manual & Re-runs AI Generation)
+ */
+exports.updateTrip = async (req, res, next) => {
     try {
         const { id } = req.params;
-
-        // ✅ Validate input first
         const { error } = tripSchema.validate(req.body);
-        if (error) {
-            return res.status(400).json({
-                message: "Validation error",
-                details: error.details[0].message
-            });
-        }
+        if (error) return res.status(400).json({ message: error.details[0].message });
 
         const { destination, days, budget } = req.body;
 
-        // 1️⃣ Check if trip exists
         const existingTrip = await Trip.findById(id);
-        if (!existingTrip) {
-            return res.status(404).json({ message: "Trip not found" });
-        }
+        if (!existingTrip) return res.status(404).json({ message: "Trip not found" });
 
-        // 2️⃣ Re-run AI with new inputs
-        // Using existing getAIPlan from aiService
+        // Re-generate itinerary based on updated parameters
         const newItinerary = await getAIPlan({
             destination,
             days,
             budget,
-            totalBudget: budget // mapping budget to totalBudget for compatibility
+            totalBudget: budget
         });
 
-        // 3️⃣ Update trip in DB
+        // Optimization for updated plan
+        if (newItinerary.dailyPlan) {
+            for (let day of newItinerary.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, destination);
+            }
+        }
+
         existingTrip.destination = destination;
         existingTrip.days = days;
         existingTrip.budget = budget;
@@ -185,99 +157,90 @@ exports.updateTrip = async (req, res) => {
 
         await existingTrip.save();
 
-        // 🧹 Clear cache (if Redis is available)
-        if (isRedisReady()) {
-            await redisClient.del(`trip:${id}`);
-        }
+        if (isRedisReady()) await redisClient.del(`trip:${id}`);
 
-        res.status(200).json({
-            message: "Trip updated successfully",
-            trip: existingTrip,
-        });
-    } catch (error) {
-        res.status(500).json({
-            message: "Failed to update trip",
-            error: error.message,
-        });
+        res.status(200).json({ message: "Trip updated successfully", trip: existingTrip });
+    } catch (err) {
+        next(err);
     }
 };
 
-/* 4. DELETE TRIP */
-exports.deleteTrip = async (req, res) => {
+/**
+ * 5. REGENERATE TRIP (Based on User Text Instructions)
+ */
+exports.regenerateTrip = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { userInstruction } = req.body;
+
+        if (!userInstruction) return res.status(400).json({ error: "Instruction is required" });
+
+        const existingTrip = await Trip.findById(id);
+        if (!existingTrip) return res.status(404).json({ error: "Trip not found" });
+
+        const newItinerary = await regenerateAIPlan(existingTrip, userInstruction);
+
+        // Optimize the newly generated instruction-based plan
+        if (newItinerary.dailyPlan) {
+            for (let day of newItinerary.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, existingTrip.destination);
+            }
+        }
+
+        existingTrip.itinerary = newItinerary;
+        await existingTrip.save();
+
+        if (isRedisReady()) await redisClient.del(`trip:${id}`);
+
+        res.status(200).json({ message: "Trip regenerated", trip: existingTrip });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * 6. DELETE TRIP
+ */
+exports.deleteTrip = async (req, res, next) => {
     try {
         const deletedTrip = await Trip.findOneAndDelete({
             _id: req.params.id,
             user: req.user.userId
         });
 
-        if (!deletedTrip) {
-            return res.status(404).json({ message: "Trip not found or unauthorized" });
-        }
+        if (!deletedTrip) return res.status(404).json({ message: "Trip not found" });
+
+        if (isRedisReady()) await redisClient.del(`trip:${req.params.id}`);
 
         res.json({ message: "Trip deleted successfully" });
     } catch (err) {
-        console.error("DETAILED ERROR (Delete):", err);
-        res.status(500).json({
-            error: "Failed to delete trip",
-            details: err.message
-        });
+        next(err);
     }
 };
-/* 5. GET SHARED TRIP (PUBLIC) */
-exports.getSharedTrip = async (req, res) => {
+
+/**
+ * 7. GET SHARED TRIP (Public Access)
+ */
+exports.getSharedTrip = async (req, res, next) => {
     try {
         const { id } = req.params;
         const trip = await Trip.findById(id).select("-userId -user");
-        if (!trip) {
-            return res.status(404).json({ message: "Shared trip not found" });
-        }
+        if (!trip) return res.status(404).json({ message: "Shared trip not found" });
         res.status(200).json(trip);
-    } catch (error) {
-        res.status(500).json({
-            message: "Failed to fetch shared trip",
-            error: error.message
-        });
+    } catch (err) {
+        next(err);
     }
 };
-/* 6. REGENERATE TRIP ITINERARY based on user instructions */
-exports.regenerateTrip = async (req, res) => {
+
+/**
+ * 8. CREATE TRIP (Manual - No AI)
+ */
+exports.createTripManual = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const { userInstruction } = req.body;
-
-        if (!userInstruction) {
-            return res.status(400).json({ error: "userInstruction is required" });
-        }
-
-        // 1. Fetch current trip
-        const existingTrip = await Trip.findById(id);
-        if (!existingTrip) {
-            return res.status(404).json({ error: "Trip not found" });
-        }
-
-        // 2. Call AI service to regenerate
-        const { regenerateAIPlan } = require("../services/aiService");
-        const newItinerary = await regenerateAIPlan(existingTrip, userInstruction);
-
-        // 3. Update trip in DB
-        existingTrip.itinerary = newItinerary;
-        await existingTrip.save();
-
-        // 4. Clear Cache
-        if (isRedisReady()) {
-            await redisClient.del(`trip:${id}`);
-        }
-
-        res.status(200).json({
-            message: "Trip regenerated successfully",
-            trip: existingTrip
-        });
-
-    } catch (error) {
-        console.error("Regenerate Trip Error:", error);
-        res.status(500).json({
-            error: "Failed to regenerate trip",
-            details: error.message
-        });
+        const newTrip = new Trip({ ...req.body, user: req.user.userId });
+        const savedTrip = await newTrip.save();
+        res.status(201).json(savedTrip);
+    } catch (err) {
+        next(err);
     }
 };

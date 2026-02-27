@@ -2,7 +2,7 @@ const express = require("express");
 const Trip = require("../models/Trip");
 const {
     generateTrip,
-    createTrip,
+    createTripManual,
     getAllTrips,
     getTripById,
     updateTrip,
@@ -36,7 +36,7 @@ CREATE TRIP (MANUAL)
 POST /api/trips
 ==================================
 */
-router.post("/", createTrip);
+router.post("/", auth, createTripManual);
 
 /*
 ==================================
@@ -44,7 +44,7 @@ GET ALL TRIPS
 GET /api/trips
 ==================================
 */
-router.get("/", getAllTrips);
+router.get("/", auth, getAllTrips);
 
 /*
 ==================================
@@ -52,7 +52,7 @@ GET SINGLE TRIP
 GET /api/trips/:id
 ==================================
 */
-router.get("/:id", getTripById);
+router.get("/:id", auth, getTripById);
 
 /*
 ==================================
@@ -69,7 +69,7 @@ PUT /api/trips/:id
 ==================================
 */
 // ✅ Re-runs AI itinerary generation
-router.put("/:id", updateTrip);
+router.put("/:id", auth, updateTrip);
 
 /*
 ==================================
@@ -77,7 +77,7 @@ DELETE TRIP
 DELETE /api/trips/:id
 ==================================
 */
-router.delete("/:id", deleteTrip);
+router.delete("/:id", auth, deleteTrip);
 
 /*
 ==================================

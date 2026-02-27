@@ -1,25 +1,32 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { buildTravelPrompt } = require("./promptBuilder");
 const { calculateAllocation } = require("./budgetService");
+const travelModes = require('../config/travelModes');
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
- * Main service function to generate a structured AI itinerary.
- * Combines budget calculation with Gemini AI generation.
+ * Main service to generate a structured AI itinerary.
+ * Injects Persona-based instructions and Budget-specific constraints.
  */
 exports.getAIPlan = async (tripData) => {
-    const { totalBudget, days, destination } = tripData;
+    const { totalBudget, days, destination, mode = 'solo', interests } = tripData;
 
     try {
-        // 1. Get the optimized budget breakdown
-        const budgetInfo = calculateAllocation(totalBudget, days);
+        // 1. Get optimized budget & mode configuration
+        const budgetInfo = calculateAllocation(totalBudget, days, mode);
+        const modeConfig = travelModes[mode] || travelModes['solo'];
 
-        // 2. Build the prompt 
-        // We combine the base prompt with the specific budget constraints
+        // 2. Build the Persona & Budget-aware Prompt
         const basePrompt = buildTravelPrompt(tripData);
+
+        const systemInstruction = `You are a world-class travel expert specializing in ${mode} travel. 
+        Persona Context: ${modeConfig.prompt}`;
+
         const prompt = `
+            ${systemInstruction}
+            
             ${basePrompt}
 
             STRICT BUDGET CONSTRAINTS (Values in USD):
@@ -28,56 +35,27 @@ exports.getAIPlan = async (tripData) => {
             - Max Daily Food Spend: $${budgetInfo.breakdown.dailyFood}
             - Max Daily Activity Spend: $${budgetInfo.breakdown.dailyActivities}
             
-            IMPORTANT: Ensure all suggested locations and restaurants fit within these individual price caps. 
-            Return the response in valid JSON format.
+            IMPORTANT: Ensure all suggested locations and restaurants strictly align with the "${mode}" persona and fit within these price caps.
+            Return the response in valid JSON format only.
         `;
 
-        // 3. Initialize Model and Generate Content
+        // 3. Generate Content from Gemini
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        // 4. Extract and Parse JSON
-        const start = responseText.indexOf('{');
-        const end = responseText.lastIndexOf('}');
+        // 4. Parse JSON Response
+        const parsedData = extractJSONObject(responseText);
 
-        if (start === -1 || end === -1 || start >= end) {
-            throw new Error("No valid JSON found in AI response");
-        }
-
-        const cleanJson = responseText.substring(start, end + 1);
-        const parsedData = JSON.parse(cleanJson);
-
-        // Return parsed data merged with budget info for the frontend
         return {
             ...parsedData,
-            budgetAllocation: budgetInfo
+            budgetAllocation: budgetInfo,
+            travelMode: mode
         };
 
     } catch (error) {
         console.error("Gemini AI Service Error:", error.message);
-        console.warn("⚠️ Switching to Mock Data for demonstration due to API failure.");
-
-        // Fallback: Calculate budget info even for mock data if possible
-        const fallbackBudget = calculateAllocation(totalBudget || 1000, days || 3);
-
-        // return mock data so the app doesn't crash
-        return {
-            destination: destination || "Unknown",
-            duration: `${days || 3} days`,
-            budgetTier: fallbackBudget.tier,
-            overview: "This is a generated itinerary based on your preferences (Mock Data due to API failure/timeout).",
-            dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
-                day: i + 1,
-                title: `Day ${i + 1} exploration in ${destination || 'the city'}`,
-                activities: [
-                    "Visit a highly-rated local landmark",
-                    `Lunch within $${fallbackBudget.breakdown.dailyFood / 2} budget`,
-                    "Evening cultural walk"
-                ]
-            })),
-            budgetAllocation: fallbackBudget
-        };
+        return getMockData(destination, days, totalBudget, mode);
     }
 };
 
@@ -85,54 +63,31 @@ exports.getAIPlan = async (tripData) => {
  * Regenerates an existing itinerary based on user instructions.
  */
 exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
-    const { destination, days, budget, itinerary } = existingTrip;
+    const { destination, days, budget, itinerary, travelMode } = existingTrip;
 
     try {
         const prompt = `
-            Here is the current itinerary for a ${days}-day trip to ${destination} with a budget of ${budget}:
+            Current Itinerary for a ${days}-day ${travelMode || 'solo'} trip to ${destination} ($${budget}):
             ${JSON.stringify(itinerary, null, 2)}
 
-            Please modify it based on this feedback: "${userInstruction}".
+            USER REQUEST: "${userInstruction}"
             
             STRICT RULES:
-            - Keep the same destination and duration.
+            - Keep the same destination, duration, and travel mode persona.
             - Adjust the activities, titles, or overview as requested.
-            - Maintain the same budget constraints.
-            - Return the response ONLY as a valid JSON object.
-            
-            The JSON structure must be exactly as follows:
-            {
-              "destination": "${destination}",
-              "duration": "${days} days",
-              "budget": "${budget}",
-              "overview": "A brief summary of the updated trip.",
-              "dailyPlan": [
-                {
-                  "day": 1,
-                  "title": "Day theme or title",
-                  "activities": ["Activity 1", "Activity 2", "Activity 3"]
-                }
-              ]
-            }
+            - Maintain the budget breakdown provided in the previous itinerary.
+            - Return the response ONLY as valid JSON.
         `;
 
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        const start = responseText.indexOf('{');
-        const end = responseText.lastIndexOf('}');
-
-        if (start === -1 || end === -1 || start >= end) {
-            throw new Error("No valid JSON found in AI response");
-        }
-
-        const cleanJson = responseText.substring(start, end + 1);
-        const parsedData = JSON.parse(cleanJson);
+        const parsedData = extractJSONObject(responseText);
 
         return {
             ...parsedData,
-            budgetAllocation: existingTrip.itinerary.budgetAllocation // reuse existing budget info
+            budgetAllocation: existingTrip.itinerary.budgetAllocation
         };
 
     } catch (error) {
@@ -142,15 +97,41 @@ exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
 };
 
 /**
- * Helper for direct model testing or raw text responses
+ * Helper: Safely extracts JSON from Markdown-wrapped AI responses
  */
-exports.getGeminiResponse = async (prompt) => {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    } catch (error) {
-        console.error("Gemini raw response error:", error.message);
-        throw error;
+function extractJSONObject(text) {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+
+    if (start === -1 || end === -1 || start >= end) {
+        throw new Error("No valid JSON found in AI response");
     }
-};
+
+    const cleanJson = text.substring(start, end + 1);
+    return JSON.parse(cleanJson);
+}
+
+/**
+ * Fallback: Returns structured mock data if the API fails
+ */
+function getMockData(destination, days, budget, mode) {
+    console.warn("⚠️ Switching to Mock Data for demonstration.");
+    const fallbackBudget = calculateAllocation(budget || 1000, days || 3, mode);
+
+    return {
+        destination: destination || "Explore City",
+        duration: `${days || 3} days`,
+        budgetTier: fallbackBudget.tier,
+        overview: "This is a fallback itinerary generated because the AI service is currently unavailable.",
+        dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
+            day: i + 1,
+            title: `Discover ${destination || 'the area'} - Day ${i + 1}`,
+            activities: [
+                `Visit local spots suited for ${mode} travelers`,
+                `Enjoy lunch within $${fallbackBudget.breakdown.dailyFood / 2} limit`,
+                "Relaxing evening walk and scenic views"
+            ]
+        })),
+        budgetAllocation: fallbackBudget
+    };
+}
