@@ -27,4 +27,8 @@ const tripSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+tripSchema.index({ destination: 1 });
+tripSchema.index({ userId: 1 });
+tripSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("Trip", tripSchema);

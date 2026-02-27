@@ -3,7 +3,7 @@ const { tripSchema } = require("../validators/tripValidator");
 const { getAIPlan } = require("../services/aiService");
 const { getForecast } = require("../services/weatherService");
 const { calculateAllocation } = require("../services/budgetService");
-const redisClient = require("../config/redisClient");
+const redisClient = require("../config/redis");
 
 /* 1. CREATE AI-GENERATED TRIP WITH WEATHER & BUDGET VALIDATION */
 exports.generateTrip = async (req, res) => {
@@ -82,7 +82,31 @@ exports.generateTrip = async (req, res) => {
 /* 2. GET ALL TRIPS */
 exports.getAllTrips = async (req, res) => {
     try {
-        const trips = await Trip.find().sort({ createdAt: -1 });
+        const page = parseInt(req.query.page) || 1;
+        const cacheKey = `trips_page_${page}`;
+
+        // Check cache
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            console.log("⚡ Serving all trips from Redis cache");
+            return res.json(JSON.parse(cachedData));
+        }
+
+        const limit = 10;
+        const skip = (page - 1) * limit;
+
+        const trips = await Trip.find()
+            .select("destination days budget createdAt")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Store in cache for 60 seconds
+        await redisClient.set(cacheKey, JSON.stringify(trips), {
+            EX: 60
+        });
+
         res.json(trips);
     } catch (err) {
         console.error("DETAILED ERROR (Get):", err);
@@ -110,12 +134,13 @@ exports.getTripById = async (req, res) => {
         const { id } = req.params;
         const cacheKey = `trip:${id}`;
 
-        // 1️⃣ Check cache
-        const cachedTrip = await redisClient.get(cacheKey);
-
-        if (cachedTrip) {
-            console.log("⚡ Serving from Redis cache");
-            return res.status(200).json(JSON.parse(cachedTrip));
+        // 1️⃣ Check cache (if Redis is ready)
+        if (redisClient.isReady) {
+            const cachedTrip = await redisClient.get(cacheKey);
+            if (cachedTrip) {
+                console.log("⚡ Serving from Redis cache");
+                return res.status(200).json(JSON.parse(cachedTrip));
+            }
         }
 
         // 2️⃣ Fetch from DB
@@ -125,14 +150,15 @@ exports.getTripById = async (req, res) => {
             return res.status(404).json({ message: "Trip not found" });
         }
 
-        // 3️⃣ Store in cache (Expire in 10 minutes)
-        await redisClient.setEx(
-            cacheKey,
-            600,
-            JSON.stringify(trip)
-        );
-
-        console.log("💾 Data cached in Redis");
+        // 3️⃣ Store in cache (if Redis is ready)
+        if (redisClient.isReady) {
+            await redisClient.setEx(
+                cacheKey,
+                600,
+                JSON.stringify(trip)
+            );
+            console.log("💾 Data cached in Redis");
+        }
         res.status(200).json(trip);
 
     } catch (error) {
@@ -182,8 +208,10 @@ exports.updateTrip = async (req, res) => {
 
         await existingTrip.save();
 
-        // 🧹 Clear cache
-        await redisClient.del(`trip:${id}`);
+        // 🧹 Clear cache (if Redis is ready)
+        if (redisClient.isReady) {
+            await redisClient.del(`trip:${id}`);
+        }
 
         res.status(200).json({
             message: "Trip updated successfully",

@@ -7,6 +7,7 @@ const swaggerUi = require("swagger-ui-express");
 const aiRoutes = require("./routes/aiRoutes");
 const mapsRoutes = require("./routes/mapsRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
+const smartRoutes = require("./routes/smartPromptRoutes");
 
 require("./db");
 
@@ -48,6 +49,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/trips", require("./routes/tripRoutes"));
 app.use("/api/ai", aiRoutes);
 app.use("/api/maps", mapsRoutes);
+app.use("/api", smartRoutes);
 
 // Health Check
 app.get("/", (req, res) => res.send("Travel Planner API is running..."));
