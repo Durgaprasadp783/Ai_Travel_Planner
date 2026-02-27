@@ -82,11 +82,42 @@ exports.generateTrip = async (req, res, next) => {
 };
 
 /**
- * 2. GET ALL TRIPS (For Logged-in User)
+ * 2. GET ALL TRIPS (For Logged-in User with Pagination & Cache)
  */
 exports.getAllTrips = async (req, res, next) => {
     try {
-        const trips = await Trip.find({ user: req.user.userId }).sort({ createdAt: -1 });
+        const page = parseInt(req.query.page) || 1;
+
+        // IMPORTANT: Include user ID in cache key so users only see their own trips
+        const cacheKey = `trips_user_${req.user.userId}_page_${page}`;
+
+        // 1. Check cache safely
+        if (isRedisReady()) {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                console.log("⚡ Serving all trips from Redis cache");
+                return res.json(JSON.parse(cachedData));
+            }
+        }
+
+        const limit = 10;
+        const skip = (page - 1) * limit;
+
+        // 2. Fetch from DB: Filter by user AND apply pagination
+        const trips = await Trip.find({ user: req.user.userId })
+            .select("destination days budget createdAt")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // 3. Store in cache for 60 seconds safely
+        if (isRedisReady()) {
+            await redisClient.set(cacheKey, JSON.stringify(trips), {
+                EX: 60
+            });
+        }
+
         res.json(trips);
     } catch (err) {
         next(err);

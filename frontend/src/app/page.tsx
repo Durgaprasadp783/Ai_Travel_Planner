@@ -6,10 +6,7 @@ import { Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-
-const SearchBox = dynamic(() => import('@mapbox/search-js-react').then(mod => mod.SearchBox), { ssr: false });
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+import LocationAutocomplete from '@/components/LocationAutocomplete';
 
 export default function Home() {
   const { message } = App.useApp();
@@ -113,58 +110,14 @@ export default function Home() {
           }}
         >
           <div style={{ flex: 1, position: 'relative' }}>
-            <SearchBox
-              accessToken={MAPBOX_TOKEN}
-              theme={{
-                variables: {
-                  fontFamily: 'inherit',
-                  unit: '16px',
-                  borderRadius: '8px',
-                  boxShadow: 'none',
-                },
-                cssText: `
-                    .mapboxgl-ctrl-geocoder, .suggestions-wrapper, .mapboxgl-ctrl {
-                        background-color: transparent !important;
-                        box-shadow: none !important;
-                    }
-                    .mapboxgl-ctrl-geocoder--input {
-                        color: white !important;
-                        font-size: 1.1rem !important;
-                        padding-left: 36px !important; /* Space for search icon if we add one inside, or just for aesthetics */
-                    }
-                    .mapboxgl-ctrl-geocoder--input::placeholder {
-                        color: rgba(255, 255, 255, 0.7) !important;
-                    }
-                    .mapboxgl-ctrl-geocoder--icon-search {
-                        display: none !important; /* Hide default icon to use our own or cleaner look */
-                    }
-                    /* Ensure autocomplete dropdown matches luxury theme */
-                    .mapboxgl-ctrl-geocoder .suggestions {
-                        background-color: #141414 !important;
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 12px;
-                        margin-top: 8px;
-                    }
-                  `
-              }}
-              options={{
-                language: 'en',
-                types: 'place,locality,country', // Limit to meaningful destinations
-              }}
+            <LocationAutocomplete
               placeholder="Where to?"
               value={destination}
-              onChange={(val) => {
-                setDestination(val);
-              }}
-              onRetrieve={(res) => {
-                const feature = res.features[0];
-                if (feature) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const props = feature.properties as any;
-                  setDestination(props.name_preferred || props.name || props.place_name || props.full_address || "Selected Location");
-                  const [lng, lat] = feature.geometry.coordinates;
-                  setCoords({ lat, lng });
-                }
+              onChange={(val: string) => setDestination(val)}
+              className="!bg-transparent !border-none !text-white !text-lg !pl-10 !h-12"
+              onSelectLocation={(loc: { name: string; coordinates: [number, number] }) => {
+                setDestination(loc.name);
+                setCoords({ lat: loc.coordinates[1], lng: loc.coordinates[0] });
               }}
             />
             {/* Custom Search Icon Overlay */}

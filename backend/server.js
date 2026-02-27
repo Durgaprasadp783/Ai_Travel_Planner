@@ -8,6 +8,7 @@ const tripRoutes = require("./routes/tripRoutes");
 const mapsRoutes = require("./routes/mapsRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const budgetRoutes = require("./routes/budgetRoutes");
+const smartRoutes = require("./routes/smartPromptRoutes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/trips", tripRoutes);
 app.use("/api/maps", mapsRoutes);
 app.use("/api/pdf", pdfRoutes);
 app.use("/api/budget", budgetRoutes);
+app.use("/api", smartRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

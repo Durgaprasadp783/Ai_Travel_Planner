@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Form, DatePicker, InputNumber, Button, Card, Typography, Row, Col, message } from 'antd';
+import { Form, DatePicker, InputNumber, Button, Card, Typography, Row, Col, message, Input } from 'antd';
 import { CompassOutlined, SendOutlined } from '@ant-design/icons';
-import { PlaneTakeoff, MapPin } from 'lucide-react';
+import { PlaneTakeoff, MapPin, User, Heart, Users, Home, Briefcase, Sparkles } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest } from "@/lib/api";
 import { motion } from 'framer-motion';
@@ -23,6 +23,27 @@ function PlanTripContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
+    const [travelMode, setTravelMode] = useState('solo');
+    const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+    const [smartPrompt, setSmartPrompt] = useState("");
+
+    const personalityModes = [
+        { id: 'solo', label: 'Solo Traveler', icon: User },
+        { id: 'couples', label: 'Couples', icon: Heart },
+        { id: 'friends', label: 'Friends Group', icon: Users },
+        { id: 'family', label: 'Family', icon: Home },
+        { id: 'business', label: 'Business Trips', icon: Briefcase },
+    ];
+
+    const interests = ['Beach', 'Food', 'Adventure', 'History', 'Nature', 'Shopping'];
+
+    const toggleInterest = (interest: string) => {
+        setSelectedInterests(prev =>
+            prev.includes(interest)
+                ? prev.filter(i => i !== interest)
+                : [...prev, interest]
+        );
+    };
 
     // Coordinate State
     const [originCoords, setOriginCoords] = useState<[number, number] | null>(null);
@@ -52,6 +73,9 @@ function PlanTripContent() {
             // Formatting dates into strings for the Backend/AI
             startDate: values.dates[0].format('YYYY-MM-DD'),
             endDate: values.dates[1].format('YYYY-MM-DD'),
+            travelMode: travelMode,
+            interests: selectedInterests,
+            smartPrompt: smartPrompt,
         };
 
         try {
@@ -166,6 +190,74 @@ function PlanTripContent() {
                                     </Form.Item>
                                 </Col>
                             </Row>
+
+                            <div className="mt-8">
+                                <Text className="!text-white/80 text-lg mb-4 block font-medium">Select Your Travel Personality</Text>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                    {personalityModes.map((mode) => {
+                                        const Icon = mode.icon;
+                                        const isActive = travelMode === mode.id;
+                                        return (
+                                            <div
+                                                key={mode.id}
+                                                onClick={() => setTravelMode(mode.id)}
+                                                className={`
+                                                    cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300
+                                                    ${isActive
+                                                        ? 'bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 border-2 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]'
+                                                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                                                    }
+                                                `}
+                                            >
+                                                <Icon className={`w-6 h-6 ${isActive ? 'text-yellow-400' : 'text-white/60'}`} />
+                                                <span className={`text-sm font-semibold ${isActive ? 'text-yellow-400' : 'text-white/80'}`}>
+                                                    {mode.label}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <Text className="!text-white/80 text-lg mb-4 block font-medium">Choose Interests</Text>
+                                <div className="flex flex-wrap gap-3">
+                                    {interests.map((interest) => {
+                                        const isActive = selectedInterests.includes(interest);
+                                        return (
+                                            <button
+                                                key={interest}
+                                                type="button"
+                                                onClick={() => toggleInterest(interest)}
+                                                className={`
+                                                    px-6 py-2 rounded-full border transition-all duration-300 font-medium
+                                                    ${isActive
+                                                        ? 'bg-blue-500/20 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                                                        : 'bg-transparent border-white/20 text-gray-400 hover:border-white/40'
+                                                    }
+                                                `}
+                                            >
+                                                {interest}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Sparkles className="w-5 h-5 text-yellow-500" />
+                                    <Text className="!text-white/80 text-lg block font-medium">Magic Instructions (Optional)</Text>
+                                </div>
+                                <Input.TextArea
+                                    value={smartPrompt}
+                                    onChange={(e) => setSmartPrompt(e.target.value)}
+                                    placeholder="e.g., I want to propose on Day 2 at sunset, or I have a severe peanut allergy, keep dinner spots safe."
+                                    rows={4}
+                                    className="!bg-white/5 !border-white/10 !text-white !rounded-2xl !p-4 placeholder:text-white/30 
+                                               focus:!border-[#ff4d4f] focus:!shadow-[0_0_10px_rgba(255,77,79,0.2)] transition-all duration-300"
+                                />
+                            </div>
 
                             <Form.Item className="mt-8 mb-0">
                                 <Button
