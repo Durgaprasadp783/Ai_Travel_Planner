@@ -9,25 +9,36 @@ export default function TripPage() {
     const generateTrip = async () => {
         setLoading(true);
 
-        const token = localStorage.getItem("token");
+        try {
+            const token = localStorage.getItem("token");
 
-        const res = await fetch("http://localhost:5000/api/ai/generate", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                destination: "Paris",
-                days: 5,
-                budget: "Medium",
-                interests: ["Food", "Museums"],
-            }),
-        });
+            const res = await fetch("/api/ai/generate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    destination: "Paris",
+                    days: 5,
+                    budget: "Medium",
+                    interests: ["Food", "Museums"],
+                }),
+            });
 
-        const data = await res.json();
-        setResult(data.itinerary);
-        setLoading(false);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.message || "Failed to generate trip");
+            }
+
+            const data = await res.json();
+            setResult(data.itinerary);
+        } catch (error: any) {
+            console.error("Error generating trip:", error);
+            alert(error.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

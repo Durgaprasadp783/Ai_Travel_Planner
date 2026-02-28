@@ -2,7 +2,7 @@
 const axios = require("axios");
 
 exports.getForecast = async (destination, days) => {
-    const apiKey = process.env.VISUAL_CROSSING_KEY;
+    const apiKey = process.env.WEATHER_API_KEY;
 
     // Visual Crossing Timeline API (Metric units)
     const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${destination}?unitGroup=metric&key=${apiKey}&contentType=json`;

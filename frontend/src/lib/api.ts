@@ -1,7 +1,7 @@
 // File: src/lib/api.ts
 
 // Replace with your actual backend URL if different
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export const apiRequest = async (endpoint: string, options: any = {}) => {
     const url = `${BACKEND_URL}${endpoint}`;

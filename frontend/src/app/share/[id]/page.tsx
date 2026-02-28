@@ -45,7 +45,7 @@ export default function SharedItineraryPage() {
         if (!trip) return;
         setDownloading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/pdf/generate', {
+            const response = await fetch('/api/pdf/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

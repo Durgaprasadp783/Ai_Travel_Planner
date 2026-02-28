@@ -19,7 +19,7 @@ export default function Home() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/health');
+        const res = await fetch('/api/health');
         if (res.ok) {
           console.log('Backend connected');
           message.success('Connected to Backend');

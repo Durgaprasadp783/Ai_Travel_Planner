@@ -32,7 +32,7 @@ export default function ProfilePage() {
         try {
             const token = localStorage.getItem('token');
             const body = { ...values, avatar: selectedAvatar }; // Include avatar in update
-            const res = await fetch('http://localhost:5000/api/user/update-profile', {
+            const res = await fetch('/api/user/update-profile', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,4 +1,6 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -13,7 +15,10 @@ const smartRoutes = require("./routes/smartPromptRoutes");
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:3000", // frontend URL
+    credentials: true
+}));
 app.use(express.json());
 
 // Debug Middleware: Log all requests
@@ -29,6 +34,12 @@ app.use("/api/maps", mapsRoutes);
 app.use("/api/pdf", pdfRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api", smartRoutes);
+app.get("/api/health", (req, res) => res.json({ status: "API is healthy" }));
+
+
+// Health Check
+app.get("/", (req, res) => res.send("Travel Planner API is running..."));
+
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

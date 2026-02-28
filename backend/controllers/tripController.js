@@ -12,7 +12,8 @@ const { optimizeDailyRoute } = require("../utils/routeOptimizer");
  */
 exports.generateTrip = async (req, res, next) => {
     try {
-        let { origin, destination, startDate, endDate, days, budget, interests } = req.body;
+        let { origin, destination, startDate, endDate, days, budget, interests, travelMode, smartPrompt } = req.body;
+        console.log("📡 Initial Data Received in Backend:", { origin, destination, startDate, endDate, days, budget });
 
         // --- A. DATE CALCULATIONS ---
         if (!days && startDate && endDate) {
@@ -20,6 +21,9 @@ exports.generateTrip = async (req, res, next) => {
             const end = new Date(endDate);
             const diffTime = Math.abs(end - start);
             days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            console.log(`🕒 Calculated Days: ${days} (from dates ${startDate} to ${endDate})`);
+        } else {
+            console.log(`🕒 Using Provided Days: ${days}`);
         }
 
         // --- B. BUDGET SURVIVABILITY CHECK ---
@@ -32,14 +36,17 @@ exports.generateTrip = async (req, res, next) => {
         }
 
         // --- C. ALLOCATION & AI PLAN GENERATION ---
-        const budgetAllocation = calculateAllocation(budget, days);
+        const budgetAllocation = calculateAllocation(budget, days, travelMode);
 
         const aiPlan = await getAIPlan({
+            origin,
             destination,
             days,
             budget,
             interests,
-            totalBudget: budget
+            totalBudget: budget,
+            mode: travelMode,
+            smartPrompt
         });
 
         // --- D. ROUTE OPTIMIZATION ---
@@ -62,7 +69,7 @@ exports.generateTrip = async (req, res, next) => {
 
         // --- F. SAVE TO DATABASE ---
         const trip = await Trip.create({
-            user: req.user.userId,
+            userId: req.user.userId,
             origin,
             destination,
             days,
@@ -72,6 +79,14 @@ exports.generateTrip = async (req, res, next) => {
             budgetTier: budgetAllocation.tier,
             itinerary: aiPlan,
         });
+
+        // --- G. CLEAR CACHE ---
+        // Since we just created a new trip, we need to clear the cached list for this user
+        if (isRedisReady()) {
+            const cacheKey = `trips_user_${req.user.userId}_page_1`;
+            await redisClient.del(cacheKey);
+            console.log("🧹 Redis cache cleared for user's trip list");
+        }
 
         res.status(201).json(trip);
 
@@ -104,8 +119,8 @@ exports.getAllTrips = async (req, res, next) => {
         const skip = (page - 1) * limit;
 
         // 2. Fetch from DB: Filter by user AND apply pagination
-        const trips = await Trip.find({ user: req.user.userId })
-            .select("destination days budget createdAt")
+        const trips = await Trip.find({ userId: req.user.userId })
+            .select("destination days budget createdAt itinerary")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -236,7 +251,7 @@ exports.deleteTrip = async (req, res, next) => {
     try {
         const deletedTrip = await Trip.findOneAndDelete({
             _id: req.params.id,
-            user: req.user.userId
+            userId: req.user.userId
         });
 
         if (!deletedTrip) return res.status(404).json({ message: "Trip not found" });
@@ -268,7 +283,7 @@ exports.getSharedTrip = async (req, res, next) => {
  */
 exports.createTripManual = async (req, res, next) => {
     try {
-        const newTrip = new Trip({ ...req.body, user: req.user.userId });
+        const newTrip = new Trip({ ...req.body, userId: req.user.userId });
         const savedTrip = await newTrip.save();
         res.status(201).json(savedTrip);
     } catch (err) {

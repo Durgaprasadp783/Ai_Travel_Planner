@@ -32,7 +32,7 @@ export default function ItineraryPage() {
         if (!trip) return;
         setDownloading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/pdf/generate', {
+            const response = await fetch('/api/pdf/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -251,21 +251,45 @@ export default function ItineraryPage() {
                             <Timeline
                                 mode="left"
                                 items={trip.itinerary?.dailyPlan?.map((day: any) => ({
-                                    label: <span className="text-gray-400 font-medium">Day {day.day}</span>,
+                                    label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day}</span>,
                                     children: (
-                                        <motion.div variants={itemVariants} className="text-white pb-4">
+                                        <motion.div variants={itemVariants} className="text-white pb-6">
                                             <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
-                                            <ul className="pl-4 list-disc space-y-2 text-sm text-gray-300">
-                                                {day.activities.map((act: string, idx: number) => (
-                                                    <li key={idx} className="leading-relaxed">{act}</li>
-                                                ))}
-                                            </ul>
+                                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
+                                                <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
+                                                    {day.activities.map((act: string, idx: number) => {
+                                                        let label = "";
+                                                        let icon = "";
+                                                        if (idx === 0) { label = "Morning"; icon = "☀️"; }
+                                                        else if (idx === 1) { label = "Afternoon"; icon = "🏙️"; }
+                                                        else if (idx === 2) { label = "Evening"; icon = "🌙"; }
+                                                        else { label = `Activity ${idx + 1}`; icon = "📍"; }
+
+                                                        return (
+                                                            <li key={idx} className="flex flex-col gap-1 leading-relaxed">
+                                                                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-500">
+                                                                    <span>{icon}</span>
+                                                                    <span>{label}</span>
+                                                                </div>
+                                                                <div className="pl-6 text-white text-sm font-medium">
+                                                                    {act}
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
                                         </motion.div>
                                     )
                                 })) || [
-                                        { label: <span className="text-gray-400">Day 1</span>, children: <span className="text-white">Arrival, Hotel Check-in, and City Walk</span>, color: 'blue' },
-                                        { label: <span className="text-gray-400">Day 2</span>, children: <span className="text-white">Major Landmark Visit</span> },
-                                        { label: <span className="text-gray-400">Day 3</span>, children: <span className="text-white">Museum Exploration</span> },
+                                        {
+                                            label: <span className="text-gray-400">Error</span>,
+                                            children: (
+                                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                                                    <span className="text-red-400">Itinerary data is not available. Please try regenerating the trip.</span>
+                                                </div>
+                                            )
+                                        }
                                     ]}
                             />
                         </motion.div>

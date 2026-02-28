@@ -18,7 +18,7 @@
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
-    "mongoose": "^8.10.2",
+    "mongoose": "^9.2.3",
     "redis": "^5.11.0",
     "swagger-jsdoc": "^1.2.1",
     "swagger-ui-express": "^5.0.1"

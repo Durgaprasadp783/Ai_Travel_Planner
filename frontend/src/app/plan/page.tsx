@@ -64,23 +64,33 @@ function PlanTripContent() {
         setLoading(true);
         message.destroy(); // Clear any previous error popups
 
+        // Calculate days explicitly to ensure backend receives it correctly
+        let calculatedDays = 0;
+        if (values.dates && values.dates[0] && values.dates[1]) {
+            const start = values.dates[0].toDate();
+            const end = values.dates[1].toDate();
+            const diffTime = Math.abs(end - start);
+            calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
         const tripData = {
             origin: values.origin,
             destination: values.destination,
-            originCoordinates: originCoords, // Pass coords
-            destinationCoordinates: destCoords, // Pass coords
+            originCoordinates: originCoords,
+            destinationCoordinates: destCoords,
             budget: values.budget,
-            // Formatting dates into strings for the Backend/AI
+            days: calculatedDays, // Explicitly pass the days
             startDate: values.dates[0].format('YYYY-MM-DD'),
             endDate: values.dates[1].format('YYYY-MM-DD'),
             travelMode: travelMode,
             interests: selectedInterests,
             smartPrompt: smartPrompt,
         };
+        console.log("📤 Sending Trip Data:", tripData);
 
         try {
             // Day 11 Fix: Call backend on Port 5050 (or 5000 based on your terminal)
-            const result = await apiRequest("/trips", {
+            const result = await apiRequest("/trips/generate", {
                 method: "POST",
                 body: JSON.stringify(tripData),
             });

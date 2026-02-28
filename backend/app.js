@@ -1,6 +1,8 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
 const express = require("express");
-require("dotenv").config(); // Load env variables FIRST
+
 const cors = require("cors");
 const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
@@ -15,7 +17,10 @@ const app = express();
 app.use("/api/pdf", pdfRoutes);
 
 // 1. Middleware
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:3000", // frontend URL
+    credentials: true
+}));
 app.use(express.json());
 
 // 2. Swagger Configuration

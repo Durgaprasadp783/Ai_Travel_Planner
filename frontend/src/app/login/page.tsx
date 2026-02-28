@@ -6,7 +6,7 @@ import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "/api"}/auth`;
 
 const LoginPage = () => {
     const { login } = useAuth(); // Destructure login from custom hook
