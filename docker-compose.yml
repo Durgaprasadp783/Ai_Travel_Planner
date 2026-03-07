@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=5000
+      # Docker automatically routes 'redis' to the redis service below
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: ai_travel_redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      # This ensures your cached trips survive a container restart
+      - redis_data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    environment:
+      # CRITICAL: For Next.js/React client-side requests to work in your browser, 
+      # it must point to localhost, not 'backend'. (Use NEXT_PUBLIC_ if using Next.js)
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+      - BACKEND_URL=http://localhost:5000
+    depends_on:
+      - backend
+    restart: always
+
+# Define the volume for Redis persistence
+volumes:
+  redis_data:

@@ -1,7 +1,7 @@
 const { createClient } = require("redis");
 
 const redisClient = createClient({
-    url: "redis://localhost:6379",
+    url: process.env.REDIS_URL || "redis://localhost:6379",
     // Prevent client from crashing on reconnect attempts
     socket: {
         reconnectStrategy: (retries) => {

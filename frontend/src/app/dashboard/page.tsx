@@ -59,19 +59,32 @@ export default function DashboardPage() {
         fetchTrips();
     }, []);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (tripId: string) => {
+        if (!window.confirm('Are you sure you want to delete this trip?')) return;
+
         try {
-            await apiRequest(`/trips/${id}`, { method: "DELETE" });
-            message.success('Trip deleted successfully');
-            fetchTrips(); // Refresh list
+            const token = localStorage.getItem('token');
+
+            // ✅ THE FIX: Provide localhost:5000 as a fallback if env is missing
+            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+            const res = await fetch(`${baseUrl}/api/trips/${tripId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                setTrips(prevTrips => prevTrips.filter(trip => trip._id !== tripId));
+                message.success('Trip deleted successfully');
+            } else {
+                message.error('Failed to delete trip');
+            }
         } catch (error) {
             console.error(error);
             message.error('Failed to delete trip');
-            // Local fallback deletion
-            if (trips.length === 1 && trips[0]._id === id) {
-                localStorage.removeItem('lastPlannedTrip');
-                setTrips([]);
-            }
         }
     };
 
@@ -145,19 +158,12 @@ export default function DashboardPage() {
                                                 </Button>
                                             </Link>
 
-                                            <Popconfirm
-                                                title="Delete this trip?"
-                                                description="This action cannot be undone."
-                                                onConfirm={() => handleDelete(trip._id)}
-                                                okText="Yes"
-                                                cancelText="No"
-                                            >
-                                                <Button
-                                                    danger
-                                                    icon={<DeleteOutlined />}
-                                                    className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30 !h-12 !w-12 !rounded-xl flex justify-center items-center"
-                                                />
-                                            </Popconfirm>
+                                            <Button
+                                                danger
+                                                icon={<DeleteOutlined />}
+                                                className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30 !h-12 !w-12 !rounded-xl flex justify-center items-center"
+                                                onClick={() => handleDelete(trip._id)}
+                                            />
                                         </div>
                                     </div>
                                 </motion.div>
