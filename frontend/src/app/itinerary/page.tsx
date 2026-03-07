@@ -46,7 +46,7 @@ export default function ItineraryPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Itinerary_${trip.destination || 'Trip'}.pdf`;
+            a.download = `Itinerary_${(typeof trip.destination === 'object' ? trip.destination.name : trip.destination) || 'Trip'}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -140,7 +140,8 @@ export default function ItineraryPage() {
     }
 
     // Extract just the city name for the map (e.g., "Paris, France" -> "Paris")
-    const cityForMap = trip.destination ? trip.destination.split(',')[0] : 'Paris';
+    const destName = typeof trip.destination === 'object' ? trip.destination.name : trip.destination;
+    const cityForMap = destName ? destName.split(',')[0] : 'Paris';
 
     // Animation Variants
     const containerVariants = {
@@ -201,8 +202,8 @@ export default function ItineraryPage() {
                         {/* RENDER THE MAP HERE - Top on Mobile */}
                         <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
                             <TripMap
-                                origin={trip.origin}
-                                destination={trip.destination}
+                                origin={typeof trip.origin === 'object' ? trip.origin.name : trip.origin}
+                                destination={typeof trip.destination === 'object' ? trip.destination.name : trip.destination}
                                 originCoordinates={trip.originCoordinates}
                                 destinationCoordinates={trip.destinationCoordinates}
                             />

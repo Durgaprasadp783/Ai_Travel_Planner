@@ -110,13 +110,13 @@ export default function DashboardPage() {
                                     <div className="h-48 overflow-hidden relative">
                                         <img
                                             src={getImageForTrip(trip._id || 'default')}
-                                            alt={trip.destination}
+                                            alt={typeof trip.destination === 'object' ? trip.destination.name : trip.destination}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                                         <div className="absolute bottom-4 left-4">
                                             <Title level={3} style={{ color: 'white', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                                                {trip.destination}
+                                                {typeof trip.destination === 'object' ? trip.destination.name : trip.destination}
                                             </Title>
                                         </div>
                                     </div>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                                         <div className="space-y-3 mb-6 flex-grow">
                                             <div className="flex items-center text-gray-300">
                                                 <CalendarOutlined className="mr-2 text-[#ff4d4f]" />
-                                                <span>{trip.days} Days • {trip.startDate}</span>
+                                                <span>{trip.days} Days • {typeof trip.destination === 'object' && trip.destination.startDate ? trip.destination.startDate : trip.startDate || 'Any time'}</span>
                                             </div>
                                             <div className="flex items-center text-gray-300">
                                                 <WalletOutlined className="mr-2 text-green-400" />
