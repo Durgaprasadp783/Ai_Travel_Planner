@@ -13,8 +13,8 @@ async function testGemini() {
 
     const prompt = buildTravelPrompt(input);
     try {
-        const response = await aiService.getGeminiResponse(prompt);
-        console.log("GEMINI RESPONSE:\n", response);
+        const response = await aiService.getAIPlan(input);
+        console.log("GEMINI RESPONSE:\n", JSON.stringify(response, null, 2));
     } catch (e) {
         console.error("Test failed:", e.message);
         if (e.response) console.error("Response data:", JSON.stringify(e.response, null, 2));

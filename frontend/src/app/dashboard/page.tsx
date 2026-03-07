@@ -30,6 +30,7 @@ const getImageForTrip = (id: string) => {
 };
 
 export default function DashboardPage() {
+    const [messageApi, contextHolder] = message.useMessage();
     const [trips, setTrips] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -48,7 +49,7 @@ export default function DashboardPage() {
             if (localTrip) {
                 setTrips([JSON.parse(localTrip)]);
             } else {
-                message.error("Could not load trips. Please check connection.");
+                messageApi.error("Could not load trips. Please check connection.");
             }
         } finally {
             setLoading(false);
@@ -78,18 +79,19 @@ export default function DashboardPage() {
 
             if (res.ok) {
                 setTrips(prevTrips => prevTrips.filter(trip => trip._id !== tripId));
-                message.success('Trip deleted successfully');
+                messageApi.success('Trip deleted successfully');
             } else {
-                message.error('Failed to delete trip');
+                messageApi.error('Failed to delete trip');
             }
         } catch (error) {
             console.error(error);
-            message.error('Failed to delete trip');
+            messageApi.error('Failed to delete trip');
         }
     };
 
     return (
         <ProtectedRoute>
+            {contextHolder}
             <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
                 <div className="flex justify-between items-center mb-8">
                     <Title level={2} style={{ color: 'white', margin: 0 }}>My Adventures</Title>
@@ -123,13 +125,13 @@ export default function DashboardPage() {
                                     <div className="h-48 overflow-hidden relative">
                                         <img
                                             src={getImageForTrip(trip._id || 'default')}
-                                            alt={trip.destination}
+                                            alt={typeof trip.destination === 'object' ? trip.destination.name : trip.destination}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                                         <div className="absolute bottom-4 left-4">
                                             <Title level={3} style={{ color: 'white', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                                                {trip.destination}
+                                                {typeof trip.destination === 'object' ? trip.destination.name : trip.destination}
                                             </Title>
                                         </div>
                                     </div>
@@ -139,11 +141,15 @@ export default function DashboardPage() {
                                         <div className="space-y-3 mb-6 flex-grow">
                                             <div className="flex items-center text-gray-300">
                                                 <CalendarOutlined className="mr-2 text-[#ff4d4f]" />
-                                                <span>{trip.days} Days • {trip.startDate}</span>
+                                                <span>{trip.days} Days • {typeof trip.destination === 'object' && trip.destination.startDate ? trip.destination.startDate : trip.startDate || 'Any time'}</span>
                                             </div>
                                             <div className="flex items-center text-gray-300">
                                                 <WalletOutlined className="mr-2 text-green-400" />
                                                 <span>Budget: ${trip.budget}</span>
+                                            </div>
+                                            <div className="flex items-center text-gray-400 text-xs gap-3">
+                                                <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase tracking-tighter">{trip.mode || 'solo'}</span>
+                                                <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10">{trip.peopleCount || 1} Travelers</span>
                                             </div>
                                         </div>
 

@@ -24,8 +24,20 @@ function PlanTripContent() {
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [travelMode, setTravelMode] = useState('solo');
+    const [peopleCount, setPeopleCount] = useState(1);
     const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
     const [smartPrompt, setSmartPrompt] = useState("");
+
+    // --- Mode-Specific Limits ---
+    const limits: Record<string, number> = {
+        'solo': 1,
+        'family': 5,
+        'friends': 10,
+        'business': 4,
+        'couples': 2
+    };
+
+    const maxLimit = limits[travelMode] || 1;
 
     const personalityModes = [
         { id: 'solo', label: 'Solo Traveler', icon: User },
@@ -82,7 +94,8 @@ function PlanTripContent() {
             days: calculatedDays, // Explicitly pass the days
             startDate: values.dates[0].format('YYYY-MM-DD'),
             endDate: values.dates[1].format('YYYY-MM-DD'),
-            travelMode: travelMode,
+            mode: travelMode,
+            peopleCount: peopleCount,
             interests: selectedInterests,
             smartPrompt: smartPrompt,
         };
@@ -199,6 +212,22 @@ function PlanTripContent() {
                                         />
                                     </Form.Item>
                                 </Col>
+
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label={`Guest Count (Max: ${maxLimit})`}
+                                    >
+                                        <InputNumber
+                                            prefix={<Users className="w-4 h-4 text-gray-400 mr-2" />}
+                                            min={1}
+                                            max={maxLimit}
+                                            value={peopleCount}
+                                            onChange={(val) => setPeopleCount(val || 1)}
+                                            style={{ width: '100%' }}
+                                            className="!bg-white/5 !border-white/10 !text-white !h-12 flex items-center !rounded-xl"
+                                        />
+                                    </Form.Item>
+                                </Col>
                             </Row>
 
                             <div className="mt-8">
@@ -210,7 +239,13 @@ function PlanTripContent() {
                                         return (
                                             <div
                                                 key={mode.id}
-                                                onClick={() => setTravelMode(mode.id)}
+                                                onClick={() => {
+                                                    setTravelMode(mode.id);
+                                                    const newMax = limits[mode.id] || 1;
+                                                    if (peopleCount > newMax) {
+                                                        setPeopleCount(newMax);
+                                                    }
+                                                }}
                                                 className={`
                                                     cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300
                                                     ${isActive

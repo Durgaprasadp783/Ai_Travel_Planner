@@ -7,7 +7,9 @@ import { motion } from 'framer-motion';
 import { Share2, Wand2 } from 'lucide-react';
 import Link from 'next/link';
 // 1. Import Dynamic to load the map only on the client side
-import dynamic from 'next/dynamic';
+// 1. Import dynamic to load map only on client side (if needed later)
+// import dynamic from 'next/dynamic';
+import RouteMap from '@/components/RouteMap';
 import { apiRequest } from '@/lib/api';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ItinerarySkeleton from '@/components/ItinerarySkeleton';
@@ -15,10 +17,6 @@ import { Modal, Input, App } from 'antd';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-
-// 2. Load the Map component (Disable SSR - Server Side Rendering)
-// We do this because the Map needs the browser 'window' to work
-const TripMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 export default function ItineraryPage() {
     const { message, notification } = App.useApp();
@@ -46,7 +44,7 @@ export default function ItineraryPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Itinerary_${trip.destination || 'Trip'}.pdf`;
+            a.download = `Itinerary_${(typeof trip.destination === 'object' ? trip.destination.name : trip.destination) || 'Trip'}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -140,7 +138,65 @@ export default function ItineraryPage() {
     }
 
     // Extract just the city name for the map (e.g., "Paris, France" -> "Paris")
-    const cityForMap = trip.destination ? trip.destination.split(',')[0] : 'Paris';
+    const destName = typeof trip.destination === 'object' ? trip.destination.name : trip.destination;
+    const cityForMap = destName ? destName.split(',')[0] : 'Paris';
+
+    // Helper to extract days robustly because Gemini JSON structure can vary
+    const extractDays = (itineraryData: any) => {
+        if (!itineraryData) return [];
+        // If it's already an array, use it
+        if (Array.isArray(itineraryData)) return itineraryData;
+        if (Array.isArray(itineraryData.days)) return itineraryData.days;
+        if (Array.isArray(itineraryData.itinerary)) return itineraryData.itinerary;
+        if (Array.isArray(itineraryData.dailyPlan)) return itineraryData.dailyPlan;
+
+        // Handle object with keys like "day1", "day2", etc.
+        const dayKeys = Object.keys(itineraryData).filter(key => key.toLowerCase().includes('day'));
+        if (dayKeys.length > 0 && !Array.isArray(itineraryData.days)) {
+            // Check if these keys map to arrays
+            const hasArrayValues = dayKeys.some(key => Array.isArray(itineraryData[key]));
+            if (hasArrayValues) {
+                return dayKeys.map((key, index) => {
+                    const placesData = itineraryData[key];
+                    return {
+                        day: index + 1,
+                        title: key,
+                        places: Array.isArray(placesData) ? placesData.map((p: any) => typeof p === 'string' ? { name: p } : p) : []
+                    };
+                });
+            }
+        }
+
+        // Deep search for any array that looks like days
+        const values = Object.values(itineraryData);
+        for (const val of values) {
+            if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && (val[0].day || val[0].places || val[0].activities || val[0].plan)) {
+                return val;
+            }
+            if (typeof val === 'object' && val !== null) {
+                const subValues = Object.values(val);
+                for (const subVal of subValues) {
+                    if (Array.isArray(subVal) && subVal.length > 0 && typeof subVal[0] === 'object' && (subVal[0].day || subVal[0].places || subVal[0].activities || subVal[0].plan)) {
+                        return subVal;
+                    }
+                }
+            }
+        }
+
+        // Final fallback: if there's any array at all in the object values, wrap it 
+        const anyArray = values.find(val => Array.isArray(val));
+        if (anyArray) {
+            return [{
+                day: 1,
+                title: "Day 1",
+                places: (anyArray as any[]).map(p => typeof p === 'string' ? { name: p } : p)
+            }];
+        }
+
+        return [];
+    };
+
+    const daysList = extractDays(trip.itinerary);
 
     // Animation Variants
     const containerVariants = {
@@ -193,6 +249,12 @@ export default function ItineraryPage() {
                             <Tag color="red" className="!bg-[#ff4d4f]/20 !border-[#ff4d4f]/30 !text-[#ff4d4f] !px-3 !py-1.5 !text-sm !rounded-lg m-0">
                                 {trip.startDate} to {trip.endDate}
                             </Tag>
+                            <Tag color="blue" className="!bg-blue-500/10 !border-blue-500/20 !text-blue-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0 uppercase font-bold">
+                                {trip.mode || 'Solo'} Mode
+                            </Tag>
+                            <Tag color="purple" className="!bg-purple-500/10 !border-purple-500/20 !text-purple-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0">
+                                {trip.peopleCount || 1} Traveler(s)
+                            </Tag>
                             <Tag color="green" className="!bg-green-500/10 !border-green-500/20 !text-green-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0">
                                 Budget: ${trip.budget}
                             </Tag>
@@ -200,11 +262,8 @@ export default function ItineraryPage() {
 
                         {/* RENDER THE MAP HERE - Top on Mobile */}
                         <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
-                            <TripMap
-                                origin={trip.origin}
-                                destination={trip.destination}
-                                originCoordinates={trip.originCoordinates}
-                                destinationCoordinates={trip.destinationCoordinates}
+                            <RouteMap
+                                places={daysList.flatMap((day: any) => day.places || day.activities || day.plan || [])}
                             />
                         </div>
 
@@ -250,29 +309,32 @@ export default function ItineraryPage() {
                         >
                             <Timeline
                                 mode="left"
-                                items={trip.itinerary?.dailyPlan?.map((day: any) => ({
-                                    label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day}</span>,
+                                items={daysList.map((day: any, i: number) => ({
+                                    label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day || (i + 1)}</span>,
                                     children: (
                                         <motion.div variants={itemVariants} className="text-white pb-6">
                                             <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
                                                 <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
-                                                    {day.activities.map((act: string, idx: number) => {
-                                                        let label = "";
-                                                        let icon = "";
-                                                        if (idx === 0) { label = "Morning"; icon = "☀️"; }
-                                                        else if (idx === 1) { label = "Afternoon"; icon = "🏙️"; }
-                                                        else if (idx === 2) { label = "Evening"; icon = "🌙"; }
-                                                        else { label = `Activity ${idx + 1}`; icon = "📍"; }
+                                                    {(day.places || day.activities || day.plan || [])?.map((place: any, idx: number) => {
+                                                        let icon = "📍";
+                                                        if (idx === 0) icon = "☀️";
+                                                        else if (idx === 1) icon = "🏙️";
+                                                        else if (idx === 2) icon = "🌙";
 
                                                         return (
                                                             <li key={idx} className="flex flex-col gap-1 leading-relaxed">
                                                                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-500">
                                                                     <span>{icon}</span>
-                                                                    <span>{label}</span>
+                                                                    <span>{place.time || `Stop ${idx + 1}`}</span>
                                                                 </div>
-                                                                <div className="pl-6 text-white text-sm font-medium">
-                                                                    {act}
+                                                                <div className="pl-6 flex flex-col">
+                                                                    <div className="text-white text-[15px] font-semibold">
+                                                                        {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                    </div>
+                                                                    <div className="text-gray-400 text-sm mt-0.5">
+                                                                        {place.location || place.address || place.description || 'No description available.'}
+                                                                    </div>
                                                                 </div>
                                                             </li>
                                                         );

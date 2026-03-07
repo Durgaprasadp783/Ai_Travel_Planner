@@ -133,6 +133,7 @@ export default function SharedItineraryPage() {
                                 destination={trip.destination}
                                 originCoordinates={trip.originCoordinates}
                                 destinationCoordinates={trip.destinationCoordinates}
+                                itinerary={trip.itinerary}
                             />
                         </div>
 
@@ -161,11 +162,37 @@ export default function SharedItineraryPage() {
                     <Card title={<span className="text-white text-lg">Daily Schedule</span>} className="glass-effect !bg-black/40 !border-white/10 !rounded-3xl h-full border border-white/5">
                         <Timeline
                             mode="left"
-                            items={[
-                                { label: <span className="text-gray-400 font-medium">Day 1</span>, children: <span className="text-white">Arrival and Check-in</span>, color: 'blue' },
-                                { label: <span className="text-gray-400 font-medium">Day 2</span>, children: <span className="text-white">Major Landmark Visit</span> },
-                                { label: <span className="text-gray-400 font-medium">Day 3</span>, children: <span className="text-white">Local Exploration</span> },
-                            ]}
+                            items={trip.itinerary?.dailyPlan?.map((day: any) => ({
+                                label: <span className="text-gray-400 font-medium">Day {day.day}</span>,
+                                children: (
+                                    <div className="text-white pb-6">
+                                        <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
+                                            <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
+                                                {day.activities.map((act: any, idx: number) => {
+                                                    const activityName = typeof act === 'string' ? act : act.name;
+                                                    const activityAddress = typeof act === 'object' ? act.address : null;
+
+                                                    return (
+                                                        <li key={idx} className="flex flex-col gap-1 leading-relaxed">
+                                                            <div className="flex flex-col">
+                                                                <div className="text-white text-sm font-medium">
+                                                                    {activityName}
+                                                                </div>
+                                                                {activityAddress && (
+                                                                    <div className="text-gray-500 text-[11px] mt-0.5">
+                                                                        {activityAddress}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )
+                            }))}
                         />
                     </Card>
                 </Col>

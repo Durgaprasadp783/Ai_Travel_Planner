@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { message } from "antd";
+import { App } from "antd";
 
 interface User {
     id: string;
@@ -22,6 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const { message } = App.useApp();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [isBackendConnected, setIsBackendConnected] = useState(true); // Default to true
