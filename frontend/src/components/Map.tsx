@@ -52,15 +52,14 @@ interface TripMapProps {
     destination?: string;
     originCoordinates?: [number, number];
     destinationCoordinates?: [number, number];
+    itinerary?: any;
 }
 
-export default function TripMap({ origin, destination, originCoordinates, destinationCoordinates }: TripMapProps) {
+export default function TripMap({ origin, destination, originCoordinates, destinationCoordinates, itinerary }: TripMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<L.Map | null>(null);
 
     // Get Coords: Use Props -> Dictionary -> Default
-    // Note: Mapbox used [lng, lat], Leaflet uses [lat, lng] for points but usually handles lngLat objects too.
-    // We'll normalize to [lat, lng] for Leaflet internal calls.
     const startLngLat: [number, number] = originCoordinates || CITY_COORDINATES[origin || ""] || CITY_COORDINATES["New York"] || DEFAULT_COORDS;
     const endLngLat: [number, number] = destinationCoordinates || CITY_COORDINATES[destination || ""] || CITY_COORDINATES["Rome"] || DEFAULT_COORDS;
 
@@ -79,13 +78,10 @@ export default function TripMap({ origin, destination, originCoordinates, destin
                 attributionControl: false
             });
 
-            // Add Dark Mode Tiles (Standard OpenStreetMap or similar)
+            // Add Dark Mode Tiles
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map.current);
-        } else {
-            // Update view if map already exists
-            map.current.setView([(startCoords[0] + endCoords[0]) / 2, (startCoords[1] + endCoords[1]) / 2]);
         }
 
         // Clear existing layers (except tiles)
@@ -95,23 +91,50 @@ export default function TripMap({ origin, destination, originCoordinates, destin
             }
         });
 
-        // 1. ADD ROUTE LINE
+        // 1. ADD FLIGHT ROUTE LINE
         const curvedPoints = getCurvedRoute([startLngLat[0], startLngLat[1]], [endLngLat[0], endLngLat[1]]);
         L.polyline(curvedPoints, {
             color: '#ff4d4f',
             weight: 3,
-            opacity: 0.8,
+            opacity: 0.6,
+            dashArray: '10, 10',
             lineCap: 'round',
             lineJoin: 'round'
         }).addTo(map.current);
 
-        // 2. FIT BOUNDS
-        const bounds = L.latLngBounds([startCoords, endCoords]);
-        map.current.fitBounds(bounds, { padding: [50, 50] });
+        // Collect all coordinates to fit bounds
+        const allPoints: [number, number][] = [startCoords, endCoords];
 
-        // 3. ADD CUSTOM MARKERS
+        // 2. ADD ACTIVITY MARKERS (DYNAMIC)
+        const activityIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div class="bg-indigo-500 p-1.5 rounded-full shadow-lg border-2 border-white"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
 
-        // Origin Marker
+        if (itinerary?.dailyPlan) {
+            itinerary.dailyPlan.forEach((day: any) => {
+                day.activities?.forEach((act: any) => {
+                    if (act.lat && act.lng) {
+                        const actCoords: [number, number] = [act.lat, act.lng];
+                        allPoints.push(actCoords);
+
+                        L.marker(actCoords, { icon: activityIcon })
+                            .addTo(map.current!)
+                            .bindPopup(`<b>Day ${day.day}: ${act.name}</b><br/><small>${act.address || ''}</small>`);
+                    }
+                });
+            });
+        }
+
+        // 3. FIT BOUNDS (Including all activities)
+        if (allPoints.length > 0) {
+            const bounds = L.latLngBounds(allPoints);
+            map.current.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // 4. ADD START/DEST MARKERS
         const originIcon = L.divIcon({
             className: 'custom-div-icon',
             html: `<div class="bg-blue-500 p-2 rounded-full shadow-lg border-2 border-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plane"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-1.1-.3-2.2.3-2.6 1.3-.3.9.1 2 .8 2.5l7.7 5.7-2.1 2.1-1.2-1.2-1.4 1.4 2.8 2.8 1.4-1.4-1.2-1.2 2.1-2.1 5.7 7.7c.5.7 1.6 1.1 2.5.8.9-.4 1.5-1.5 1.3-2.6Z"/></svg></div>`,
@@ -121,7 +144,6 @@ export default function TripMap({ origin, destination, originCoordinates, destin
         L.marker(startCoords, { icon: originIcon }).addTo(map.current)
             .bindPopup(`<b>Start: ${origin || 'Origin'}</b>`);
 
-        // Destination Marker
         const destIcon = L.divIcon({
             className: 'custom-div-icon',
             html: `<div class="bg-red-500 p-2 rounded-full shadow-lg border-2 border-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
@@ -131,10 +153,7 @@ export default function TripMap({ origin, destination, originCoordinates, destin
         L.marker(endCoords, { icon: destIcon }).addTo(map.current)
             .bindPopup(`<b>Dest: ${destination || 'Destination'}</b>`);
 
-        return () => {
-            // Cleanup on unmount if needed
-        };
-    }, [origin, destination, originCoordinates, destinationCoordinates, startCoords, endCoords, startLngLat, endLngLat]);
+    }, [origin, destination, originCoordinates, destinationCoordinates, itinerary, startCoords, endCoords, startLngLat, endLngLat]);
 
     return (
         <div className="glass-effect rounded-3xl overflow-hidden shadow-2xl h-[400px] w-full relative">

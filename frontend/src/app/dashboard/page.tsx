@@ -132,6 +132,10 @@ export default function DashboardPage() {
                                                 <WalletOutlined className="mr-2 text-green-400" />
                                                 <span>Budget: ${trip.budget}</span>
                                             </div>
+                                            <div className="flex items-center text-gray-400 text-xs gap-3">
+                                                <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase tracking-tighter">{trip.mode || 'solo'}</span>
+                                                <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10">{trip.peopleCount || 1} Travelers</span>
+                                            </div>
                                         </div>
 
                                         <div className="flex gap-3 mt-auto">

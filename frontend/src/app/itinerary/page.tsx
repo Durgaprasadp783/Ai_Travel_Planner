@@ -193,6 +193,12 @@ export default function ItineraryPage() {
                             <Tag color="red" className="!bg-[#ff4d4f]/20 !border-[#ff4d4f]/30 !text-[#ff4d4f] !px-3 !py-1.5 !text-sm !rounded-lg m-0">
                                 {trip.startDate} to {trip.endDate}
                             </Tag>
+                            <Tag color="blue" className="!bg-blue-500/10 !border-blue-500/20 !text-blue-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0 uppercase font-bold">
+                                {trip.mode || 'Solo'} Mode
+                            </Tag>
+                            <Tag color="purple" className="!bg-purple-500/10 !border-purple-500/20 !text-purple-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0">
+                                {trip.peopleCount || 1} Traveler(s)
+                            </Tag>
                             <Tag color="green" className="!bg-green-500/10 !border-green-500/20 !text-green-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0">
                                 Budget: ${trip.budget}
                             </Tag>
@@ -205,6 +211,7 @@ export default function ItineraryPage() {
                                 destination={trip.destination}
                                 originCoordinates={trip.originCoordinates}
                                 destinationCoordinates={trip.destinationCoordinates}
+                                itinerary={trip.itinerary}
                             />
                         </div>
 
@@ -257,7 +264,7 @@ export default function ItineraryPage() {
                                             <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
                                                 <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
-                                                    {day.activities.map((act: string, idx: number) => {
+                                                    {day.activities.map((act: any, idx: number) => {
                                                         let label = "";
                                                         let icon = "";
                                                         if (idx === 0) { label = "Morning"; icon = "☀️"; }
@@ -265,14 +272,24 @@ export default function ItineraryPage() {
                                                         else if (idx === 2) { label = "Evening"; icon = "🌙"; }
                                                         else { label = `Activity ${idx + 1}`; icon = "📍"; }
 
+                                                        const activityName = typeof act === 'string' ? act : act.name;
+                                                        const activityAddress = typeof act === 'object' ? act.address : null;
+
                                                         return (
                                                             <li key={idx} className="flex flex-col gap-1 leading-relaxed">
                                                                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-500">
                                                                     <span>{icon}</span>
                                                                     <span>{label}</span>
                                                                 </div>
-                                                                <div className="pl-6 text-white text-sm font-medium">
-                                                                    {act}
+                                                                <div className="pl-6 flex flex-col">
+                                                                    <div className="text-white text-sm font-medium">
+                                                                        {activityName}
+                                                                    </div>
+                                                                    {activityAddress && (
+                                                                        <div className="text-gray-500 text-[11px] mt-0.5">
+                                                                            {activityAddress}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </li>
                                                         );

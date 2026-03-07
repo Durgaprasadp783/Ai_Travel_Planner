@@ -10,6 +10,7 @@ const {
     getSharedTrip,
     regenerateTrip
 } = require("../controllers/tripController");
+const { downloadTripPDF } = require("../controllers/pdfController");
 const auth = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -86,5 +87,13 @@ POST /api/trips/:id/regenerate
 ==================================
 */
 router.post("/:id/regenerate", auth, regenerateTrip);
+
+/*
+==================================
+DOWNLOAD PDF
+GET /api/trips/:id/download
+==================================
+*/
+router.get("/:id/download", auth, downloadTripPDF);
 
 module.exports = router;

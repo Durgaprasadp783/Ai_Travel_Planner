@@ -10,11 +10,12 @@ const aiRoutes = require("./routes/aiRoutes");
 const mapsRoutes = require("./routes/mapsRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const smartRoutes = require("./routes/smartPromptRoutes");
+const budgetRoutes = require("./routes/budgetRoutes");
+const errorHandler = require("./middleware/errorMiddleware");
 
 require("./db");
 
 const app = express();
-app.use("/api/pdf", pdfRoutes);
 
 // 1. Middleware
 app.use(cors({
@@ -43,10 +44,12 @@ const swaggerOptions = {
             },
         },
     },
-    apis: ["./routes/*.js"],
+    apis: [path.join(__dirname, "routes", "*.js")],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
+
+app.get("/", (req, res) => res.send("Travel Planner API is running..."));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // 3. Routes
@@ -54,7 +57,12 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/trips", require("./routes/tripRoutes"));
 app.use("/api/ai", aiRoutes);
 app.use("/api/maps", mapsRoutes);
+app.use("/api/pdf", pdfRoutes);
+app.use("/api/budget", budgetRoutes);
 app.use("/api", smartRoutes);
+
+// Error Handler
+app.use(errorHandler);
 
 // Health Check
 app.get("/", (req, res) => res.send("Travel Planner API is running..."));
