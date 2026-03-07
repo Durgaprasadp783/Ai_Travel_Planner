@@ -57,9 +57,58 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                 .moveDown(1);
 
             // Daily Plan
-            if (Array.isArray(itineraryData.dailyPlan)) {
-                itineraryData.dailyPlan.forEach((day) => {
-                    const dayNum = day.day || "?";
+            // Helper to get days correctly
+            let daysList = [];
+            const extractDays = (data) => {
+                if (!data) return [];
+                if (Array.isArray(data)) return data;
+                if (Array.isArray(data.days)) return data.days;
+                if (Array.isArray(data.itinerary)) return data.itinerary;
+                if (Array.isArray(data.dailyPlan)) return data.dailyPlan;
+
+                const dayKeys = Object.keys(data).filter(k => k.toLowerCase().includes('day'));
+                if (dayKeys.length > 0) {
+                    const hasArrayValues = dayKeys.some(k => Array.isArray(data[k]));
+                    if (hasArrayValues) {
+                        return dayKeys.map((k, i) => ({
+                            day: i + 1,
+                            title: k,
+                            places: Array.isArray(data[k]) ? data[k] : []
+                        }));
+                    }
+                }
+
+                const values = Object.values(data);
+                for (const val of values) {
+                    if (Array.isArray(val) && val.length > 0 && val[0] && typeof val[0] === 'object' && (val[0].day || val[0].places || val[0].activities || val[0].plan)) {
+                        return val;
+                    }
+                    if (typeof val === 'object' && val !== null) {
+                        const subValues = Object.values(val);
+                        for (const subVal of subValues) {
+                            if (Array.isArray(subVal) && subVal.length > 0 && subVal[0] && typeof subVal[0] === 'object' && (subVal[0].day || subVal[0].places || subVal[0].activities || subVal[0].plan)) {
+                                return subVal;
+                            }
+                        }
+                    }
+                }
+
+                const anyArray = values.find(val => Array.isArray(val));
+                if (anyArray) {
+                    return [{
+                        day: 1,
+                        title: "Day 1",
+                        places: anyArray
+                    }];
+                }
+                return [];
+            };
+
+            daysList = extractDays(itineraryData);
+
+            if (daysList.length > 0) {
+                daysList.forEach((day, index) => {
+                    const dayNum = day.day || (index + 1);
                     const dayTitle = day.title || "Day";
 
                     doc
@@ -69,13 +118,32 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                         .text(`Day ${dayNum}: ${dayTitle}`)
                         .moveDown(0.5);
 
-                    if (Array.isArray(day.activities)) {
-                        day.activities.forEach((activity) => {
+                    const activitiesList = Array.isArray(day.activities) ? day.activities :
+                        (Array.isArray(day.places) ? day.places :
+                            (Array.isArray(day.plan) ? day.plan : []));
+
+                    if (activitiesList.length > 0) {
+                        activitiesList.forEach((activity, idx) => {
+                            let actName = `Activity ${idx + 1}`;
+                            let actTime = '';
+
+                            if (typeof activity === 'string') {
+                                actName = activity;
+                            } else if (activity) {
+                                actName = activity.name || activity.location || activity.description || actName;
+                                actTime = activity.time ? ` (${activity.time})` : '';
+
+                                // Failsafe if the entire array element was blindly stringified into object Object
+                                if (actName === '[object Object]') {
+                                    actName = JSON.stringify(activity);
+                                }
+                            }
+
                             doc
                                 .fillColor("#34495e")
                                 .fontSize(12)
                                 .font("Helvetica")
-                                .text(`- ${activity}`, {
+                                .text(`- ${actName}${actTime}`, {
                                     indent: 20,
                                     lineGap: 5,
                                 });

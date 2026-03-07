@@ -16,6 +16,11 @@ const { attachExactLocations } = require("../utils/locationService");
 exports.generateTrip = async (req, res, next) => {
     try {
         let { origin, destination, originCoordinates, destinationCoordinates, startDate, endDate, days, budget, interests, mode, peopleCount, smartPrompt } = req.body;
+
+        // Ensure origin and destination are strings for the AI prompt
+        origin = typeof origin === 'object' && origin !== null ? (origin.name || origin.address || '') : origin;
+        destination = typeof destination === 'object' && destination !== null ? (destination.name || destination.address || '') : destination;
+
         console.log("📡 Initial Data Received in Backend:", { origin, destination, startDate, endDate, days, budget });
 
         // --- A. DATE CALCULATIONS ---
@@ -57,16 +62,16 @@ exports.generateTrip = async (req, res, next) => {
         aiPlan = await attachExactLocations(aiPlan);
 
         // --- F. ROUTE OPTIMIZATION ---
-        if (aiPlan.dailyPlan) {
-            for (let day of aiPlan.dailyPlan) {
-                day.activities = await optimizeDailyRoute(day.activities, destination);
+        if (aiPlan.days) {
+            for (let day of aiPlan.days) {
+                day.places = await optimizeDailyRoute(day.places, destination);
             }
         }
 
         // --- G. WEATHER INTEGRATION ---
         const weatherData = await getForecast(destination, startDate, days);
-        if (weatherData && aiPlan.dailyPlan) {
-            aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => ({
+        if (weatherData && aiPlan.days) {
+            aiPlan.days = aiPlan.days.map((dayPlan, index) => ({
                 ...dayPlan,
                 weather: weatherData[index] || "No forecast available"
             }));
@@ -187,9 +192,9 @@ exports.regenerateTrip = async (req, res, next) => {
         newItinerary = await attachExactLocations(newItinerary);
 
         // Optimize the newly generated instruction-based plan
-        if (newItinerary.dailyPlan) {
-            for (let day of newItinerary.dailyPlan) {
-                day.activities = await optimizeDailyRoute(day.activities, existingTrip.destination);
+        if (newItinerary.days) {
+            for (let day of newItinerary.days) {
+                day.places = await optimizeDailyRoute(day.places, existingTrip.destination);
             }
         }
 
@@ -304,9 +309,9 @@ exports.updateTrip = async (req, res, next) => {
         // Attach exact locations (Phase 2)
         aiPlan = await attachExactLocations(aiPlan);
 
-        if (aiPlan.dailyPlan) {
-            for (let day of aiPlan.dailyPlan) {
-                day.activities = await optimizeDailyRoute(day.activities, trip.destination);
+        if (aiPlan.days) {
+            for (let day of aiPlan.days) {
+                day.places = await optimizeDailyRoute(day.places, trip.destination);
             }
         }
 

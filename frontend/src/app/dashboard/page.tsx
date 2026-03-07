@@ -30,6 +30,7 @@ const getImageForTrip = (id: string) => {
 };
 
 export default function DashboardPage() {
+    const [messageApi, contextHolder] = message.useMessage();
     const [trips, setTrips] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -48,7 +49,7 @@ export default function DashboardPage() {
             if (localTrip) {
                 setTrips([JSON.parse(localTrip)]);
             } else {
-                message.error("Could not load trips. Please check connection.");
+                messageApi.error("Could not load trips. Please check connection.");
             }
         } finally {
             setLoading(false);
@@ -62,11 +63,11 @@ export default function DashboardPage() {
     const handleDelete = async (id: string) => {
         try {
             await apiRequest(`/trips/${id}`, { method: "DELETE" });
-            message.success('Trip deleted successfully');
+            messageApi.success('Trip deleted successfully');
             fetchTrips(); // Refresh list
         } catch (error) {
             console.error(error);
-            message.error('Failed to delete trip');
+            messageApi.error('Failed to delete trip');
             // Local fallback deletion
             if (trips.length === 1 && trips[0]._id === id) {
                 localStorage.removeItem('lastPlannedTrip');
@@ -77,6 +78,7 @@ export default function DashboardPage() {
 
     return (
         <ProtectedRoute>
+            {contextHolder}
             <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
                 <div className="flex justify-between items-center mb-8">
                     <Title level={2} style={{ color: 'white', margin: 0 }}>My Adventures</Title>

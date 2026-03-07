@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Form, Input, Button, Card, Tabs, message, Checkbox } from "antd";
+import { Form, Input, Button, Card, Tabs, Checkbox, App } from "antd";
 import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
@@ -12,6 +12,7 @@ const LoginPage = () => {
     const { login } = useAuth(); // Destructure login from custom hook
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const { message } = App.useApp();
 
     /* ================= LOGIN ================= */
     const handleLogin = async (values: any) => {

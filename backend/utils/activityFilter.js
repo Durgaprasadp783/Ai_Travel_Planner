@@ -7,10 +7,10 @@ exports.sanitizeItinerary = (itinerary, mode) => {
     const modeConfig = travelModes[mode];
     if (!modeConfig || !modeConfig.blacklist) return itinerary;
 
-    itinerary.dailyPlan = itinerary.dailyPlan.map(day => ({
+    itinerary.days = itinerary.days.map(day => ({
         ...day,
-        activities: day.activities.map(activity => {
-            const description = (activity.description || activity.name || "").toLowerCase();
+        places: day.places.map(place => {
+            const description = (place.location || place.name || "").toLowerCase();
 
             // Check if any blacklisted word exists in the activity text
             const isForbidden = modeConfig.blacklist.some(word => description.includes(word));
@@ -18,13 +18,13 @@ exports.sanitizeItinerary = (itinerary, mode) => {
             if (isForbidden) {
                 console.warn(`FILTERED: Found forbidden activity for ${mode} mode. Replacing...`);
                 return {
-                    ...activity,
+                    ...place,
                     name: modeConfig.fallbackActivity,
-                    description: "Selected as a more appropriate alternative for your travel style.",
+                    location: "Selected as a more appropriate alternative for your travel style.",
                     filtered: true // Flag this for the frontend to show a badge if you want
                 };
             }
-            return activity;
+            return place;
         })
     }));
 

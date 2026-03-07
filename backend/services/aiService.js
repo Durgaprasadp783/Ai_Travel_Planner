@@ -40,7 +40,7 @@ exports.getAIPlan = async (tripData) => {
             - Max Daily Activity Spend: $${budgetInfo.breakdown.dailyActivities}
             
             IMPORTANT: Return the response in valid JSON format only. 
-            Ensure "dailyPlan" contains exactly ${days} days.
+            Ensure the "days" array contains exactly ${days} days.
         `;
 
         // 4. Generate Content
@@ -86,9 +86,9 @@ exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
             STRICT RULES FOR REGENERATION:
             1. Maintain the destination, duration, and budget.
             2. NO REPETITION: Ensure that any newly added activities or places do not repeat existing ones.
-            3. DIVERSITY: Use specific place names for all activities (Morning, Afternoon, Evening).
+            3. DIVERSITY: Use specific place names for all places (Morning, Afternoon, Evening).
             4. Keep the response as valid JSON ONLY.
-            5. Ensure the "dailyPlan" still contains EXACTLY ${days} days.
+            5. Ensure the "days" array still contains EXACTLY ${days} days.
         `;
 
         const model = genAI.getGenerativeModel({
@@ -136,10 +136,22 @@ function getMockData(destination, days, budget, mode) {
     console.warn("⚠️ Switching to Mock Data.");
     const fallbackBudget = calculateAllocation(budget || 1000, days || 3, mode);
 
-    const activities = [
-        ["Explore Downtown", "Visit Local Landmark", "Evening Cultural Walk"],
-        ["Historic District", "Regional Market", "Live Music Venue"],
-        ["Nature Park", "Scenic Lunch", "Sunset Viewpoint"]
+    const placesData = [
+        [
+            { name: "Explore Downtown", location: "Downtown Center", time: "10:00 AM" },
+            { name: "Visit Local Landmark", location: "Historical Park", time: "2:00 PM" },
+            { name: "Evening Cultural Walk", location: "Old Town Market", time: "7:00 PM" }
+        ],
+        [
+            { name: "Historic District", location: "Old town area", time: "09:00 AM" },
+            { name: "Regional Market", location: "Local Main Street", time: "1:00 PM" },
+            { name: "Live Music Venue", location: "Downtown Arena", time: "8:00 PM" }
+        ],
+        [
+            { name: "Nature Park", location: "City Park", time: "08:00 AM" },
+            { name: "Scenic Lunch", location: "Riverside Cafe", time: "12:30 PM" },
+            { name: "Sunset Viewpoint", location: "Mount Lookout", time: "6:00 PM" }
+        ]
     ];
 
     return {
@@ -147,10 +159,10 @@ function getMockData(destination, days, budget, mode) {
         duration: `${days || 3} days`,
         budgetTier: fallbackBudget.tier,
         overview: "A curated itinerary featuring top-rated local spots.",
-        dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
+        days: Array.from({ length: days || 3 }, (_, i) => ({
             day: i + 1,
             title: `Day ${i + 1}: Discover ${destination || 'the area'}`,
-            activities: activities[i % activities.length]
+            places: placesData[i % placesData.length]
         })),
         budgetAllocation: fallbackBudget
     };

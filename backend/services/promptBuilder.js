@@ -30,7 +30,7 @@ const buildTravelPrompt = (input) => {
 
     STRICT PLANNIG RULES:
     1. START LOCATION: Day 1 MUST begin near the specified start point (${origin || 'City Center'}).
-    2. GENERATE EXACTLY ${days} DAYS: Your response MUST include a unique "dailyPlan" entry for every single day from Day 1 to Day ${days}.
+    2. GENERATE EXACTLY ${days} DAYS: Your response MUST include a unique "days" array entry for every single day from Day 1 to Day ${days}.
     3. VARIETY & UNIQUE CONTENT: Each day must feature DIFFERENT attractions and specific place names.
     4. NO REPETITION: Absolutely NO attractions, restaurants, or specific activities should appear more than once in the entire itinerary.
     5. STRUCTURE: Each day must include at least 3 distinct activities:
@@ -48,17 +48,49 @@ const buildTravelPrompt = (input) => {
       "duration": "${days} days",
       "budget": "${budget}",
       "overview": "A brief but professional summary of the trip highlighting the unique variety of your plan.",
-      "dailyPlan": [
+      "days": [
         {
           "day": 1,
           "title": "Unique Theme for Day 1",
-          "activities": ["Named Morning Attraction", "Named Afternoon Attraction", "Named Evening Attraction"]
+          "places": [
+            {
+              "name": "Named Morning Attraction",
+              "time": "10:00 AM",
+              "location": "Named Morning Attraction, City"
+            },
+            {
+              "name": "Named Afternoon Attraction",
+              "time": "2:00 PM",
+              "location": "Named Afternoon Attraction, City"
+            },
+            {
+              "name": "Named Evening Attraction",
+              "time": "7:00 PM",
+              "location": "Named Evening Attraction, City"
+            }
+          ]
         },
         // ... include unique entries for Day 2 through Day ${days}
         {
           "day": ${days},
           "title": "Unique Theme for Final Day",
-          "activities": ["Final Morning Attraction", "Final Afternoon Attraction", "Final Evening Attraction"]
+          "places": [
+            {
+              "name": "Final Morning Attraction",
+              "time": "09:00 AM",
+              "location": "Final Morning Attraction, City"
+            },
+            {
+               "name": "Final Afternoon Attraction",
+               "time": "1:00 PM",
+               "location": "Final Afternoon Attraction, City"
+            },
+            {
+               "name": "Final Evening Attraction",
+               "time": "6:00 PM",
+               "location": "Final Evening Attraction, City"
+            }
+          ]
         }
       ]
     }
