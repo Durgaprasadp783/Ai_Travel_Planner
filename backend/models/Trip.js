@@ -11,6 +11,26 @@ const tripSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        originCoordinates: {
+            type: [Number], // [longitude, latitude]
+            required: false
+        },
+        destinationCoordinates: {
+            type: [Number], // [longitude, latitude]
+            required: false
+        },
+        origin: {
+            type: String,
+            required: false
+        },
+        startDate: {
+            type: Date,
+            required: false
+        },
+        endDate: {
+            type: Date,
+            required: false
+        },
         days: {
             type: Number,
             required: true
@@ -18,6 +38,23 @@ const tripSchema = new mongoose.Schema(
         budget: {
             type: Number,
             required: true
+        },
+        budgetTier: {
+            type: String,
+            required: false
+        },
+        mode: {
+            type: String,
+            enum: ['solo', 'family', 'friends', 'business', 'couples'],
+            required: false
+        },
+        peopleCount: {
+            type: Number,
+            required: false
+        },
+        interests: {
+            type: [String],
+            required: false
         },
         itinerary: {
             type: Object,

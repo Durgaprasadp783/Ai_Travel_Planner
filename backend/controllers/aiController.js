@@ -1,11 +1,11 @@
-const { generateItinerary } = require("../services/aiService");
+const { getAIPlan } = require("../services/aiService");
 
 exports.createAITrip = async (req, res) => {
     try {
         console.log("🚀 AI route hit!");
         console.log("Request body:", req.body);
 
-        const itinerary = await generateItinerary(req.body);
+        const itinerary = await getAIPlan(req.body);
 
         res.json({ itinerary });
 

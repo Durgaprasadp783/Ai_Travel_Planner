@@ -2,10 +2,10 @@
   "name": "ai-travel-planner-root",
   "version": "1.0.0",
   "scripts": {
-    "start": "concurrently \"node backend/server.js\" \"npm run dev --prefix frontend\""
+    "start": "concurrently \"node backend/app.js\" \"npm run dev --prefix frontend\""
   },
   "dependencies": {
-    "redis": "^5.11.0",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "redis": "^5.11.0"
   }
 }
