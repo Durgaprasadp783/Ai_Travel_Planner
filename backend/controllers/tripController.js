@@ -62,16 +62,16 @@ exports.generateTrip = async (req, res, next) => {
         aiPlan = await attachExactLocations(aiPlan);
 
         // --- F. ROUTE OPTIMIZATION ---
-        if (aiPlan.days) {
-            for (let day of aiPlan.days) {
-                day.places = await optimizeDailyRoute(day.places, destination);
+        if (aiPlan.dailyPlan) {
+            for (let day of aiPlan.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, destination);
             }
         }
 
         // --- G. WEATHER INTEGRATION ---
         const weatherData = await getForecast(destination, startDate, days);
-        if (weatherData && aiPlan.days) {
-            aiPlan.days = aiPlan.days.map((dayPlan, index) => ({
+        if (weatherData && aiPlan.dailyPlan) {
+            aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => ({
                 ...dayPlan,
                 weather: weatherData[index] || "No forecast available"
             }));
@@ -192,9 +192,9 @@ exports.regenerateTrip = async (req, res, next) => {
         newItinerary = await attachExactLocations(newItinerary);
 
         // Optimize the newly generated instruction-based plan
-        if (newItinerary.days) {
-            for (let day of newItinerary.days) {
-                day.places = await optimizeDailyRoute(day.places, existingTrip.destination);
+        if (newItinerary.dailyPlan) {
+            for (let day of newItinerary.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, existingTrip.destination);
             }
         }
 
@@ -309,9 +309,9 @@ exports.updateTrip = async (req, res, next) => {
         // Attach exact locations (Phase 2)
         aiPlan = await attachExactLocations(aiPlan);
 
-        if (aiPlan.days) {
-            for (let day of aiPlan.days) {
-                day.places = await optimizeDailyRoute(day.places, trip.destination);
+        if (aiPlan.dailyPlan) {
+            for (let day of aiPlan.dailyPlan) {
+                day.activities = await optimizeDailyRoute(day.activities, trip.destination);
             }
         }
 

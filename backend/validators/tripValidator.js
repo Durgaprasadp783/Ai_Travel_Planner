@@ -9,7 +9,7 @@ const tripSchema = Joi.object({
     days: Joi.number()
         .integer()
         .min(1)
-        .max(30)
+        .max(15)
         .required(),
 
     budget: Joi.number()

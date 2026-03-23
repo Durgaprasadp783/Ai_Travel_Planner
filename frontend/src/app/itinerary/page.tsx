@@ -313,7 +313,14 @@ export default function ItineraryPage() {
                                     label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day || (i + 1)}</span>,
                                     children: (
                                         <motion.div variants={itemVariants} className="text-white pb-6">
-                                            <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div className="font-bold text-base text-[#ff4d4f]">{day.title}</div>
+                                                {day.dailyBudgetAllocated && (
+                                                    <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider">
+                                                        Daily Budget: ${day.dailyBudgetAllocated}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
                                                 <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
                                                     {(day.places || day.activities || day.plan || [])?.map((place: any, idx: number) => {
@@ -329,8 +336,15 @@ export default function ItineraryPage() {
                                                                     <span>{place.time || `Stop ${idx + 1}`}</span>
                                                                 </div>
                                                                 <div className="pl-6 flex flex-col">
-                                                                    <div className="text-white text-[15px] font-semibold">
-                                                                        {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div className="text-white text-[15px] font-semibold">
+                                                                            {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                        </div>
+                                                                        {place.estimatedCost !== undefined && (
+                                                                            <div className="text-green-400 font-mono text-xs">
+                                                                                ${place.estimatedCost}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     <div className="text-gray-400 text-sm mt-0.5">
                                                                         {place.location || place.address || place.description || 'No description available.'}
