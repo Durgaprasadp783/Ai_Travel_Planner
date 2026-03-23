@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <App>
               <AuthProvider>
                 <Navbar />
-                <main className="pt-24">
+                <main className="pt-16">
                   {children}
                 </main>
               </AuthProvider>
