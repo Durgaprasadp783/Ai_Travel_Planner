@@ -79,12 +79,16 @@ exports.downloadTripPDF = async (req, res, next) => {
                     });
                 }
 
-                if (day.weather) {
+                if (day.weather && day.weather !== "No forecast available") {
+                    const weatherStr = typeof day.weather === 'string' 
+                        ? day.weather 
+                        : `${day.weather.condition}, ${day.weather.avgTemp}°C`;
+
                     doc.moveDown(0.2)
                         .fillColor('#4a5568')
                         .fontSize(9)
                         .font('Helvetica')
-                        .text(`Forecast: ${day.weather}`, { indent: 20 });
+                        .text(`Forecast: ${weatherStr}`, { indent: 20 });
                 }
 
                 doc.moveDown(1);
