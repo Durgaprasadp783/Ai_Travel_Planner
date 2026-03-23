@@ -1,17 +1,18 @@
-# Backend Dockerfile
+# Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Install dependencies separately to leverage Docker cache
+# Copy package.json and install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy all backend source code
+# Copy application code
 COPY . .
 
-# Expose the API port
+# Expose port
 EXPOSE 5000
 
 # Start command
-CMD ["node", "app.js"]
+CMD ["npm", "start"]

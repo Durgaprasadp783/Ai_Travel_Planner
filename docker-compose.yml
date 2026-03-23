@@ -1,51 +1,47 @@
 version: '3.8'
 
 services:
-  # MongoDB Database
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb_travel_planner
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-  # Redis Cache
-  redis:
-    image: redis:alpine
-    container_name: redis_travel_planner
-    ports:
-      - "6379:6379"
-
-  # Backend API
   backend:
-    build: ./backend
-    container_name: backend_travel_planner
+    build:
+      context: ./backend
     ports:
       - "5000:5000"
+    env_file:
+      - ./backend/.env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/ai_travel_planner
-      - REDIS_URL=redis://redis:6379
       - PORT=5000
-      - JWT_SECRET=your_super_secret_jwt_key
-      # Add your API keys below or in a root .env file
-      # - GEMINI_API_KEY=your_key
-      # - GOOGLE_MAPS_API_KEY=your_key
-      # - WEATHER_API_KEY=your_key
+      # Docker automatically routes 'redis' to the redis service below
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      - mongodb
       - redis
+    restart: always
 
-  # Frontend Application
+  redis:
+    image: redis:alpine
+    container_name: ai_travel_redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      # This ensures your cached trips survive a container restart
+      - redis_data:/data
+
   frontend:
-    build: ./frontend
-    container_name: frontend_travel_planner
+    build:
+      context: ./frontend
     ports:
       - "3000:3000"
+    env_file:
+      - ./frontend/.env
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      # CRITICAL: For Next.js/React client-side requests to work in your browser, 
+      # it must point to localhost, not 'backend'. (Use NEXT_PUBLIC_ if using Next.js)
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+      - BACKEND_URL=http://localhost:5000
     depends_on:
       - backend
+    restart: always
 
+# Define the volume for Redis persistence
 volumes:
-  mongo_data:
+  redis_data:

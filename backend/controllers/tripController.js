@@ -240,15 +240,12 @@ exports.regenerateTrip = async (req, res, next) => {
  */
 exports.deleteTrip = async (req, res, next) => {
     try {
-        const deletedTrip = await Trip.findOneAndDelete({
-            _id: req.params.id,
-            userId: req.user.userId
-        });
+        const deletedTrip = await Trip.findByIdAndDelete(req.params.id);
 
         if (!deletedTrip) return res.status(404).json({ message: "Trip not found" });
         if (isRedisReady()) await redisClient.del(`trip:${req.params.id}`);
 
-        res.json({ message: "Trip deleted successfully" });
+        res.status(200).json({ message: "Trip deleted successfully" });
     } catch (err) {
         next(err);
     }
