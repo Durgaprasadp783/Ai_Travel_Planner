@@ -1,0 +1,58 @@
+﻿On branch main
+Your branch and 'origin/main' have diverged,
+and have 1 and 5 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   .dockerignore
+	modified:   backend/Dockerfile
+	modified:   backend/app.js
+	modified:   backend/controllers/tripController.js
+	modified:   backend/node_modules/mime-db/HISTORY.md
+	modified:   backend/node_modules/mime-db/README.md
+	modified:   backend/node_modules/mime-db/db.json
+	modified:   backend/node_modules/mime-db/package.json
+	modified:   backend/node_modules/mime-types/HISTORY.md
+	modified:   backend/node_modules/mime-types/README.md
+	modified:   backend/node_modules/mime-types/index.js
+	modified:   backend/node_modules/mime-types/package.json
+	modified:   backend/package.json
+	new file:   backend/routes/flightRoutes.js
+	new file:   backend/testPdfGen.js
+	new file:   backend/test_decoration.js
+	new file:   backend/tmp/test-flat-1772876876781.pdf
+	new file:   backend/tmp/test-flat-1772877225279.pdf
+	new file:   backend/tmp/test-itinerary-1772876852851.pdf
+	new file:   backend/tmp/test-nested-1772876877237.pdf
+	new file:   backend/tmp/test-nested-1772877225894.pdf
+	new file:   backend/tmp/test.pdf
+	modified:   backend/utils/locationService.js
+	modified:   backend/utils/pdfGenerator.js
+	modified:   docker-compose.yml
+	modified:   frontend/Dockerfile
+	modified:   frontend/next.config.ts
+	modified:   frontend/package-lock.json
+	modified:   frontend/package.json
+	modified:   frontend/src/app/dashboard/page.tsx
+	new file:   frontend/src/app/flights/page.tsx
+	modified:   frontend/src/components/Navbar.tsx
+	modified:   frontend/src/components/RouteMap.tsx
+	new file:   frontend/src/components/flights/FlightList.tsx
+	new file:   frontend/src/components/flights/FlightSearch.tsx
+	new file:   frontend/src/components/flights/MapComponent.tsx
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   backend/controllers/pdfController.js
+	both modified:   backend/node_modules/.package-lock.json
+	both modified:   backend/package-lock.json
+	both modified:   frontend/src/app/itinerary/page.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_status3.txt
+

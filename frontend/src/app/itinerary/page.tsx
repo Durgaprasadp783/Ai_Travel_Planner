@@ -324,9 +324,16 @@ export default function ItineraryPage() {
                                     label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day || (i + 1)}</span>,
                                     children: (
                                         <motion.div variants={itemVariants} className="text-white pb-6">
-                                            <div className="flex flex-col items-start gap-2 mb-3">
-                                                <div className="font-bold text-base text-[#ff4d4f] leading-snug">
-                                                    {day.title}
+                                            <div className="flex flex-col items-start w-full gap-2 mb-3">
+                                                <div className="w-full flex justify-between items-center">
+                                                    <div className="font-bold text-base text-[#ff4d4f] leading-snug">
+                                                        {day.title}
+                                                    </div>
+                                                    {day.dailyBudgetAllocated && (
+                                                        <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider ml-4">
+                                                            Daily Budget: ${day.dailyBudgetAllocated}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {day.weather && day.weather !== "No forecast available" && (
                                                     <div className="text-sm font-medium text-blue-300 bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 w-fit">
@@ -357,8 +364,15 @@ export default function ItineraryPage() {
                                                                     <span>{place.time || `Stop ${idx + 1}`}</span>
                                                                 </div>
                                                                 <div className="pl-6 flex flex-col">
-                                                                    <div className="text-white text-[15px] font-semibold">
-                                                                        {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div className="text-white text-[15px] font-semibold">
+                                                                            {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                        </div>
+                                                                        {place.estimatedCost !== undefined && (
+                                                                            <div className="text-green-400 font-mono text-xs">
+                                                                                ${place.estimatedCost}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     <div className="text-gray-400 text-sm mt-0.5">
                                                                         {place.location || place.address || place.description || 'No description available.'}

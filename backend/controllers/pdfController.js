@@ -4,84 +4,59 @@ const Trip = require('../models/Trip');
 /**
  * Generates and streams a PDF version of the travel itinerary.
  */
-exports.downloadTripPDF = async (req, res, next) => {
+exports.downloadTripPDF = async (req, res) => {
     try {
         const trip = await Trip.findById(req.params.id);
         if (!trip) return res.status(404).json({ message: "Trip not found" });
 
-        // Set headers for file download
-        res.setHeader('Content-disposition', `attachment; filename=Itinerary_${trip.destination.replace(/\s+/g, '_')}.pdf`);
+        res.setHeader('Content-disposition', `attachment; filename=${trip.destination}_Itinerary.pdf`);
         res.setHeader('Content-type', 'application/pdf');
 
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument();
         doc.pipe(res);
 
-        // --- PDF Design ---
-        // Header
-        doc.fillColor('#1a365d')
-            .fontSize(28)
-            .font('Helvetica-Bold')
-            .text(`Your Journey to ${trip.destination}`, { align: 'center' });
-
+        // --- PDF Header ---
+        doc.fontSize(22).fillColor('#2c3e50').text(`Trip to ${trip.destination}`, { align: 'center' });
         doc.moveDown(0.5);
-        doc.strokeColor('#cbd5e0')
-            .lineWidth(1)
-            .moveTo(50, doc.y)
-            .lineTo(545, doc.y)
-            .stroke();
-        doc.moveDown();
+        doc.fontSize(12).fillColor('#7f8c8d').text(`Mode: ${trip.mode || 'Standard'} | Group: ${trip.peopleCount || 1} | Interests: ${trip.interests?.join(', ') || 'General'}`, { align: 'center' });
+        doc.fontSize(12).fillColor('#27ae60').text(`Total Budget: $${trip.budget}`, { align: 'center' });
+        doc.moveDown(2);
 
-        // Trip Summary
-        doc.fillColor('#2d3748')
-            .fontSize(12)
-            .font('Helvetica-Bold')
-            .text('Trip Overview', { underline: true });
-
-        doc.font('Helvetica')
-            .fontSize(10)
-            .text(`Starting Point: ${trip.origin || 'Not specified'}`)
-            .text(`Duration: ${trip.days} Days`)
-            .text(`Travel Mode: ${trip.mode.toUpperCase()} (${trip.peopleCount} People)`)
-            .text(`Interests: ${Array.isArray(trip.interests) ? trip.interests.join(', ') : 'General'}`);
-
-        doc.moveDown();
-
-        // Itinerary Days
-        if (trip.itinerary && Array.isArray(trip.itinerary.dailyPlan)) {
-            trip.itinerary.dailyPlan.forEach((day, index) => {
-                // New page if needed
-                if (doc.y > 650) doc.addPage();
-
-                doc.fillColor('#3182ce')
-                    .fontSize(16)
-                    .font('Helvetica-Bold')
-                    .text(`Day ${day.day}: ${day.title}`);
-
+        // --- Daily Schedule ---
+        if (trip.itinerary && trip.itinerary.dailyPlan) {
+            trip.itinerary.dailyPlan.forEach(day => {
+                // Day Title & Budget
+                doc.fontSize(16).fillColor('#2980b9').text(`Day ${day.day}: ${day.title}`);
+                if (day.dailyBudgetAllocated) {
+                    doc.fontSize(10).fillColor('#c0392b').text(`Daily Budget: $${day.dailyBudgetAllocated}`);
+                }
                 doc.moveDown(0.5);
 
-                if (Array.isArray(day.activities)) {
-                    day.activities.forEach((act, actIndex) => {
-                        const activityName = typeof act === 'string' ? act : act.name;
-                        const activityAddress = typeof act === 'object' ? act.address : null;
+                // Print Activities & Meals safely
+                day.activities.forEach(act => {
+                    // Check if the old "fallback" strings are still in the DB
+                    if (typeof act === 'string') {
+                        doc.fontSize(11).fillColor('#34495e').text(`• ${act}`);
+                    }
+                    // Handle the new rich objects properly
+                    else if (typeof act === 'object') {
+                        const timeStr = act.time ? `${act.time} - ` : '';
+                        const costStr = act.estimatedCost ? ` ($${act.estimatedCost})` : ' (Free)';
 
-                        doc.fillColor('#2d3748')
-                            .fontSize(11)
-                            .font('Helvetica-Bold')
-                            .text(`${actIndex + 1}. ${activityName}`, { indent: 20 });
+                        // Bold the Name, Time, and Cost
+                        doc.fontSize(12).fillColor('#2c3e50').text(`• ${timeStr}${act.name}${costStr}`);
 
-                        if (activityAddress) {
-                            doc.fillColor('#718096')
-                                .fontSize(9)
-                                .font('Helvetica-Oblique')
-                                .text(`Location: ${activityAddress}`, { indent: 35 });
+                        // Print the description slightly indented
+                        if (act.description) {
+                            doc.fontSize(10).fillColor('#7f8c8d').text(`   ${act.description}`);
                         }
-                        doc.moveDown(0.3);
-                    });
-                }
+                    }
+                    doc.moveDown(0.3);
+                });
 
                 if (day.weather && day.weather !== "No forecast available") {
-                    const weatherStr = typeof day.weather === 'string' 
-                        ? day.weather 
+                    const weatherStr = typeof day.weather === 'string'
+                        ? day.weather
                         : `${day.weather.condition}, ${day.weather.avgTemp}°C`;
 
                     doc.moveDown(0.2)
@@ -93,25 +68,13 @@ exports.downloadTripPDF = async (req, res, next) => {
 
                 doc.moveDown(1);
             });
-        }
-
-        // Footer
-        const pageCount = doc.bufferedPageRange().count;
-        for (let i = 0; i < pageCount; i++) {
-            doc.switchToPage(i);
-            doc.fontSize(8)
-                .fillColor('#a0aec0')
-                .text(
-                    `Generated by AI Travel Planner - Page ${i + 1} of ${pageCount}`,
-                    50,
-                    doc.page.height - 50,
-                    { align: 'center' }
-                );
+        } else {
+            doc.fontSize(14).text("No detailed itinerary available for this trip.");
         }
 
         doc.end();
     } catch (err) {
-        console.error("PDF Generation Error:", err);
-        next(err);
+        console.error("PDF Error:", err);
+        res.status(500).json({ error: "Failed to generate PDF" });
     }
 };

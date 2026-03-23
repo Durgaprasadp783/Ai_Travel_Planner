@@ -7,9 +7,10 @@ exports.sanitizeItinerary = (itinerary, mode) => {
     const modeConfig = travelModes[mode];
     if (!modeConfig || !modeConfig.blacklist) return itinerary;
 
-    itinerary.days = itinerary.days.map(day => ({
+    if (!itinerary.dailyPlan) return itinerary;
+    itinerary.dailyPlan = itinerary.dailyPlan.map(day => ({
         ...day,
-        places: day.places.map(place => {
+        activities: day.activities.map(place => {
             const description = (place.location || place.name || "").toLowerCase();
 
             // Check if any blacklisted word exists in the activity text

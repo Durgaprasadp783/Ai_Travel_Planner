@@ -26,7 +26,8 @@ redisClient.on("error", (err) => {
         console.log("✅ Redis Connected");
         isRedisReady = true;
     } catch (err) {
-        console.error("❌ Redis Connection Failed. Application will run without caching.");
+        console.error("❌ Redis Connection Failed:", err.message);
+        console.log("⚠️ Application will run without caching.");
         isRedisReady = false;
     }
 })();

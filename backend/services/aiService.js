@@ -11,42 +11,59 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * Merges budget constraints with dynamic persona-based prompting.
  */
 exports.getAIPlan = async (tripData) => {
-    const { totalBudget, days, destination, mode = 'solo', peopleCount = 1, interests } = tripData;
-
     try {
-        // 1. Get optimized budget & mode configuration
+        const { destination, days, budget, mode, interests, peopleCount } = tripData;
+        const totalBudget = budget;
+        const dailyBudget = Math.floor(budget / days);
+
+        // Get optimized budget info
         const budgetInfo = calculateAllocation(totalBudget, days, mode);
-        const modeConfig = travelModes[mode] || travelModes['solo'];
 
-        // 2. Build Dynamic System Persona & Tone
-        const tone = (mode === 'business' || mode === 'work') ? 'professional and efficient' : 'excited and adventurous';
-
-        const systemInstruction = `You are a world-class travel expert specializing in ${mode} travel for a group of ${peopleCount} member(s). 
-        Your tone is ${tone}.
-        Persona Context: ${modeConfig.prompt}
-        CRITICAL RULE: Only suggest locations and restaurants that strictly align with the "${mode}" persona and are appropriate for a group size of ${peopleCount}.`;
-
-        // 3. Construct the full prompt
-        const basePrompt = buildTravelPrompt(tripData);
         const prompt = `
-            ${systemInstruction}
+            You are an expert travel planner. You MUST output ONLY valid JSON.
             
-            ${basePrompt}
+            Trip Details:
+            - Destination: ${destination}
+            - Duration: ${days} days
+            - Total Budget: $${totalBudget}
+            - Daily Budget: $${dailyBudget}
+            - Mode: ${mode}
+            - Group Size: ${peopleCount}
+            - Interests: ${interests ? interests.join(', ') : 'General'}
 
             STRICT BUDGET CONSTRAINTS (Values in USD):
             - Travel Tier: ${budgetInfo.tier}
             - Max Nightly Hotel Cost: $${budgetInfo.breakdown.avgNightlyRate}
             - Max Daily Food Spend: $${budgetInfo.breakdown.dailyFood}
             - Max Daily Activity Spend: $${budgetInfo.breakdown.dailyActivities}
-            
-            IMPORTANT: Return the response in valid JSON format only. 
-            Ensure the "days" array contains exactly ${days} days.
+
+            CRITICAL RULES:
+            1. No markdown, no conversational text.
+            2. Every day MUST include Morning Activity, Lunch, Afternoon Activity, Dinner, and Evening Activity.
+            3. Provide realistic "estimatedCost" for each item. 
+            4. The total cost of activities for a single day MUST NOT exceed $${dailyBudget}.
+
+            REQUIRED JSON FORMAT:
+            {
+              "overview": "A brief summary of the trip.",
+              "dailyPlan": [
+                {
+                  "day": 1,
+                  "title": "Arrival and Exploration",
+                  "dailyBudgetAllocated": ${dailyBudget},
+                  "activities": [
+                    { "time": "10:00 AM", "name": "Visit [Landmark]", "type": "activity", "estimatedCost": 25, "description": "Details..." },
+                    { "time": "01:00 PM", "name": "Lunch at [Restaurant Name]", "type": "lunch", "estimatedCost": 30, "description": "Details..." },
+                    { "time": "07:00 PM", "name": "Dinner at [Restaurant Name]", "type": "dinner", "estimatedCost": 45, "description": "Details..." }
+                  ]
+                }
+              ]
+            }
         `;
 
-        // 4. Generate Content
         const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" } // Force JSON mode
+            generationConfig: { responseMimeType: "application/json" }
         });
 
         const result = await model.generateContent(prompt);
@@ -54,7 +71,6 @@ exports.getAIPlan = async (tripData) => {
 
         console.log("--- 🤖 GEMINI RESPONSE RECEIVED ---");
 
-        // 5. Parse and Return
         const parsedData = extractJSONObject(responseText);
 
         return {
@@ -62,11 +78,10 @@ exports.getAIPlan = async (tripData) => {
             budgetAllocation: budgetInfo,
             travelMode: mode
         };
-
     } catch (error) {
-        console.error("Gemini AI Service Error:", error.message);
-        // Fallback to Mock Data if API fails
-        return getMockData(destination, days, totalBudget, mode);
+        console.error("AI GENERATION FAILED:", error.message);
+        // Fallback to high-quality Mock data so the app remains usable
+        return getMockData(tripData.destination, tripData.days, tripData.budget, tripData.mode);
     }
 };
 
@@ -86,9 +101,9 @@ exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
             STRICT RULES FOR REGENERATION:
             1. Maintain the destination, duration, and budget.
             2. NO REPETITION: Ensure that any newly added activities or places do not repeat existing ones.
-            3. DIVERSITY: Use specific place names for all places (Morning, Afternoon, Evening).
+            3. DIVERSITY: Use specific place names for all activities (Morning, Afternoon, Evening).
             4. Keep the response as valid JSON ONLY.
-            5. Ensure the "days" array still contains EXACTLY ${days} days.
+            5. Ensure the "dailyPlan" still contains EXACTLY ${days} days.
         `;
 
         const model = genAI.getGenerativeModel({
@@ -133,37 +148,28 @@ function extractJSONObject(text) {
  * Fallback: Returns structured mock data if the API fails
  */
 function getMockData(destination, days, budget, mode) {
-    console.warn("⚠️ Switching to Mock Data.");
-    const fallbackBudget = calculateAllocation(budget || 1000, days || 3, mode);
+    console.warn("⚠️ Switching to Mock Data due to Error/Quota.");
 
-    const placesData = [
-        [
-            { name: "Explore Downtown", location: "Downtown Center", time: "10:00 AM" },
-            { name: "Visit Local Landmark", location: "Historical Park", time: "2:00 PM" },
-            { name: "Evening Cultural Walk", location: "Old Town Market", time: "7:00 PM" }
-        ],
-        [
-            { name: "Historic District", location: "Old town area", time: "09:00 AM" },
-            { name: "Regional Market", location: "Local Main Street", time: "1:00 PM" },
-            { name: "Live Music Venue", location: "Downtown Arena", time: "8:00 PM" }
-        ],
-        [
-            { name: "Nature Park", location: "City Park", time: "08:00 AM" },
-            { name: "Scenic Lunch", location: "Riverside Cafe", time: "12:30 PM" },
-            { name: "Sunset Viewpoint", location: "Mount Lookout", time: "6:00 PM" }
-        ]
+    const dailyBudget = Math.floor((budget || 1000) / (days || 3));
+    const budgetInfo = calculateAllocation(budget || 1000, days || 3, mode);
+
+    const mockActivities = [
+        { time: "09:00 AM", name: "Local Breakfast Spot", description: "Start your day with traditional local cuisine.", estimatedCost: 15 },
+        { time: "11:30 AM", name: "Modern Museum", description: "Explore the art and history of the region.", estimatedCost: 25 },
+        { time: "02:00 PM", name: "City Park Walk", description: "A relaxing stroll through the most famous park.", estimatedCost: 0 },
+        { time: "07:00 PM", name: "Highlight Dinner", description: "A highly-rated restaurant with local specialties.", estimatedCost: 40 },
+        { time: "09:30 PM", name: "Evening Viewpoint", description: "Catch the best views of the city at night.", estimatedCost: 0 }
     ];
 
     return {
         destination: destination || "Selected City",
-        duration: `${days || 3} days`,
-        budgetTier: fallbackBudget.tier,
-        overview: "A curated itinerary featuring top-rated local spots.",
-        days: Array.from({ length: days || 3 }, (_, i) => ({
+        overview: "A sample itinerary (Generated as fallback due to API limits).",
+        dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
             day: i + 1,
-            title: `Day ${i + 1}: Discover ${destination || 'the area'}`,
-            places: placesData[i % placesData.length]
+            title: `Day ${i + 1}: Exploring ${destination || 'the city'}`,
+            dailyBudgetAllocated: dailyBudget,
+            activities: mockActivities
         })),
-        budgetAllocation: fallbackBudget
+        budgetAllocation: budgetInfo
     };
 }
