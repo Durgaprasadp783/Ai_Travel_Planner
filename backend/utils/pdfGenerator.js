@@ -1,6 +1,7 @@
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
 
 /**
  * Generates a travel itinerary PDF.
@@ -9,7 +10,7 @@ const path = require("path");
  * @returns {Promise<string>} - The path to the generated PDF.
  */
 const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
             const doc = new PDFDocument({ margin: 50, size: "A4" });
             const filePath = path.join(__dirname, "..", "tmp", filename);
@@ -30,21 +31,65 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                 .text("AI Travel Planner Itinerary", { align: "center" })
                 .moveDown(1);
 
-            // Destination
+            // Destination and Origin Info
+            const destination = itineraryData.destination || "Unknown Destination";
+            const origin = itineraryData.origin || "";
+
             doc
                 .fillColor("#34495e")
-                .fontSize(14)
-                .font("Helvetica")
-                .text(`Destination: ${itineraryData.destination || "Unknown"}`)
-                .moveDown(0.5);
+                .fontSize(18)
+                .font("Helvetica-Bold")
+                .text(destination, { align: "center" });
+
+            if (origin) {
+                doc
+                    .fillColor("#7f8c8d")
+                    .fontSize(12)
+                    .font("Helvetica")
+                    .text(`Starting Point: ${origin}`, { align: "center" });
+            }
+            doc.moveDown(0.5);
+
+            // --- STATIC MAP INTEGRATION ---
+            const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+            if (GOOGLE_API_KEY) {
+                try {
+                    const startLoc = itineraryData.originCoordinates ? `${itineraryData.originCoordinates[1]},${itineraryData.originCoordinates[0]}` : origin;
+                    const endLoc = itineraryData.destinationCoordinates ? `${itineraryData.destinationCoordinates[1]},${itineraryData.destinationCoordinates[0]}` : destination;
+
+                    let markers = `markers=color:red|label:S|${encodeURIComponent(startLoc || endLoc)}`;
+                    if (startLoc && endLoc && startLoc !== endLoc) {
+                        markers += `&markers=color:blue|label:E|${encodeURIComponent(endLoc)}`;
+                    }
+
+                    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=600x320&maptype=roadmap&${markers}&key=${GOOGLE_API_KEY}`;
+
+                    const response = await axios.get(mapUrl, { responseType: 'arraybuffer' });
+                    const imageBuffer = Buffer.from(response.data, 'binary');
+                    doc.image(imageBuffer, {
+                        fit: [500, 260],
+                        align: 'center',
+                        valign: 'center'
+                    });
+                    doc.moveDown(1);
+                } catch (mapErr) {
+                    console.error("Static Map Fetch Error:", mapErr.message);
+                    let errorMsg = "(Map could not be loaded)";
+                    if (mapErr.response && mapErr.response.status === 403) {
+                        errorMsg = "(Map Error: 403 Forbidden - Please enable 'Maps Static API')";
+                        console.error("403 ERROR DETECTED: You must enable 'Maps Static API' in Google Cloud Console.");
+                    }
+                    doc.fontSize(10).fillColor("#e74c3c").text(errorMsg, { align: "center" }).moveDown(1);
+                }
+            }
 
             // Overview
             if (itineraryData.overview) {
                 doc
                     .fillColor("#7f8c8d")
-                    .fontSize(10)
+                    .fontSize(11)
                     .font("Helvetica-Oblique")
-                    .text(itineraryData.overview)
+                    .text(itineraryData.overview, { align: "center" })
                     .moveDown(1);
             }
 
@@ -56,40 +101,31 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                 .stroke()
                 .moveDown(1);
 
-            // Daily Plan
-            // Helper to get days correctly
-            let daysList = [];
+            // Daily Plan Extraction Logic
             const extractDays = (data) => {
                 if (!data) return [];
-                if (Array.isArray(data)) return data;
-                if (Array.isArray(data.days)) return data.days;
-                if (Array.isArray(data.itinerary)) return data.itinerary;
-                if (Array.isArray(data.dailyPlan)) return data.dailyPlan;
+                const target = data.itinerary || data;
+                if (Array.isArray(target)) return target;
+                if (Array.isArray(target.days)) return target.days;
+                if (Array.isArray(target.itinerary)) return target.itinerary;
+                if (Array.isArray(target.dailyPlan)) return target.dailyPlan;
 
-                const dayKeys = Object.keys(data).filter(k => k.toLowerCase().includes('day'));
+                const dayKeys = Object.keys(target).filter(k => k.toLowerCase().includes('day'));
                 if (dayKeys.length > 0) {
-                    const hasArrayValues = dayKeys.some(k => Array.isArray(data[k]));
+                    const hasArrayValues = dayKeys.some(k => Array.isArray(target[k]));
                     if (hasArrayValues) {
-                        return dayKeys.map((k, i) => ({
+                        return dayKeys.sort().map((k, i) => ({
                             day: i + 1,
                             title: k,
-                            places: Array.isArray(data[k]) ? data[k] : []
+                            activities: Array.isArray(target[k]) ? target[k] : []
                         }));
                     }
                 }
 
-                const values = Object.values(data);
+                const values = Object.values(target);
                 for (const val of values) {
                     if (Array.isArray(val) && val.length > 0 && val[0] && typeof val[0] === 'object' && (val[0].day || val[0].places || val[0].activities || val[0].plan)) {
                         return val;
-                    }
-                    if (typeof val === 'object' && val !== null) {
-                        const subValues = Object.values(val);
-                        for (const subVal of subValues) {
-                            if (Array.isArray(subVal) && subVal.length > 0 && subVal[0] && typeof subVal[0] === 'object' && (subVal[0].day || subVal[0].places || subVal[0].activities || subVal[0].plan)) {
-                                return subVal;
-                            }
-                        }
                     }
                 }
 
@@ -97,19 +133,21 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                 if (anyArray) {
                     return [{
                         day: 1,
-                        title: "Day 1",
-                        places: anyArray
+                        title: "Plan",
+                        activities: anyArray
                     }];
                 }
                 return [];
             };
 
-            daysList = extractDays(itineraryData);
+            const daysList = extractDays(itineraryData);
 
             if (daysList.length > 0) {
                 daysList.forEach((day, index) => {
                     const dayNum = day.day || (index + 1);
-                    const dayTitle = day.title || "Day";
+                    const dayTitle = day.title || `Day ${dayNum}`;
+
+                    if (doc.y > 650) doc.addPage();
 
                     doc
                         .fillColor("#2980b9")
@@ -123,56 +161,59 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                             (Array.isArray(day.plan) ? day.plan : []));
 
                     if (activitiesList.length > 0) {
-                        activitiesList.forEach((activity, idx) => {
+                        activitiesList.forEach((act, idx) => {
                             let actName = `Activity ${idx + 1}`;
                             let actTime = '';
+                            let actLoc = '';
 
-                            if (typeof activity === 'string') {
-                                actName = activity;
-                            } else if (activity) {
-                                actName = activity.name || activity.location || activity.description || actName;
-                                actTime = activity.time ? ` (${activity.time})` : '';
-
-                                // Failsafe if the entire array element was blindly stringified into object Object
-                                if (actName === '[object Object]') {
-                                    actName = JSON.stringify(activity);
-                                }
+                            if (typeof act === 'string') {
+                                actName = act;
+                            } else if (act && typeof act === 'object') {
+                                actName = act.name || act.title || actName;
+                                actTime = act.time ? ` [${act.time}]` : '';
+                                actLoc = act.location || act.address || '';
                             }
 
                             doc
                                 .fillColor("#34495e")
                                 .fontSize(12)
-                                .font("Helvetica")
-                                .text(`- ${actName}${actTime}`, {
-                                    indent: 20,
-                                    lineGap: 5,
-                                });
+                                .font("Helvetica-Bold")
+                                .text(`• ${actName}${actTime}`, { indent: 20 });
+
+                            if (actLoc && actLoc !== actName) {
+                                doc
+                                    .fillColor("#7f8c8d")
+                                    .fontSize(10)
+                                    .font("Helvetica")
+                                    .text(`  Location: ${actLoc}`, { indent: 30 });
+                            }
+                            doc.moveDown(0.3);
                         });
                     } else if (day.description) {
                         doc
                             .fillColor("#34495e")
-                            .fontSize(12)
+                            .fontSize(11)
                             .font("Helvetica")
-                            .text(day.description);
+                            .text(day.description, { indent: 20 });
                     }
 
-                    // Weather info if available
-                    if (day.weather) {
+                    if (day.weather && day.weather !== "No forecast available") {
+                        const weatherStr = typeof day.weather === 'string' 
+                            ? day.weather 
+                            : `${day.weather.condition}, ${day.weather.avgTemp}°C`;
+
                         doc
                             .moveDown(0.2)
-                            .fillColor("#95a5a6")
+                            .fillColor("#16a085")
                             .fontSize(10)
                             .font("Helvetica-Oblique")
-                            .text(`Forecast: ${day.weather}`, { indent: 20 });
+                            .text(`Forecast: ${weatherStr}`, { indent: 20 });
                     }
 
-                    doc.moveDown(1.5);
-
-                    // Page break if too close to bottom
-                    if (doc.y > 700) {
-                        doc.addPage();
-                    }
+                    doc.moveDown(1);
                 });
+            } else {
+                doc.fontSize(14).fillColor("#e74c3c").text("No itinerary details found.", { align: "center" });
             }
 
             doc.end();

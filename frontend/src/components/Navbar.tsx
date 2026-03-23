@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from 'antd';
-import { Menu as MenuIcon, Home, Map as MapIcon, Briefcase, User, LogOut, X } from 'lucide-react';
+import { Menu as MenuIcon, Home, Map as MapIcon, Briefcase, User, LogOut, X, PlaneTakeoff } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { usePathname } from 'next/navigation';
@@ -20,6 +20,7 @@ const Navbar = () => {
     const menuItems = [
         { label: 'Home', href: '/', icon: <Home size={18} /> },
         { label: 'Plan Trip', href: '/plan', icon: <MapIcon size={18} /> },
+        { label: 'Flights', href: '/flights', icon: <PlaneTakeoff size={18} /> },
         { label: 'My Trips', href: '/dashboard', icon: <Briefcase size={18} /> },
         { label: 'Profile', href: '/profile', icon: <User size={18} /> },
     ];

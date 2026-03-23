@@ -51,9 +51,22 @@ exports.downloadTripPDF = async (req, res) => {
                             doc.fontSize(10).fillColor('#7f8c8d').text(`   ${act.description}`);
                         }
                     }
-                    doc.moveDown(0.5);
+                    doc.moveDown(0.3);
                 });
-                doc.moveDown();
+
+                if (day.weather && day.weather !== "No forecast available") {
+                    const weatherStr = typeof day.weather === 'string'
+                        ? day.weather
+                        : `${day.weather.condition}, ${day.weather.avgTemp}°C`;
+
+                    doc.moveDown(0.2)
+                        .fillColor('#4a5568')
+                        .fontSize(9)
+                        .font('Helvetica')
+                        .text(`Forecast: ${weatherStr}`, { indent: 20 });
+                }
+
+                doc.moveDown(1);
             });
         } else {
             doc.fontSize(14).text("No detailed itinerary available for this trip.");

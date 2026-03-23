@@ -243,7 +243,14 @@ export default function ItineraryPage() {
                 {/* LEFT COLUMN: Trip Details & Map */}
                 <Col xs={24} lg={14}>
                     <Card className="glass-effect !bg-black/40 !border-white/10 !rounded-3xl !h-full border border-white/5">
-                        <Title level={2} className="!text-white !mt-0 !mb-4 md:!text-3xl text-2xl">Trip to {cityForMap}</Title>
+                        <div className="mb-4">
+                            <Title level={2} className="!text-white !mt-0 !mb-1 md:!text-3xl text-2xl">Trip to {cityForMap}</Title>
+                            {trip.origin && (
+                                <Text className="text-gray-400 block text-sm">
+                                    Journey from <span className="text-blue-400 font-semibold">{trip.origin}</span>
+                                </Text>
+                            )}
+                        </div>
 
                         <div className="flex flex-wrap gap-2 mb-6">
                             <Tag color="red" className="!bg-[#ff4d4f]/20 !border-[#ff4d4f]/30 !text-[#ff4d4f] !px-3 !py-1.5 !text-sm !rounded-lg m-0">
@@ -264,6 +271,10 @@ export default function ItineraryPage() {
                         <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
                             <RouteMap
                                 places={daysList.flatMap((day: any) => day.places || day.activities || day.plan || [])}
+                                origin={trip.origin}
+                                destination={cityForMap}
+                                originCoords={trip.originCoordinates}
+                                destinationCoords={trip.destinationCoordinates}
                             />
                         </div>
 
@@ -313,11 +324,28 @@ export default function ItineraryPage() {
                                     label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day || (i + 1)}</span>,
                                     children: (
                                         <motion.div variants={itemVariants} className="text-white pb-6">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <div className="font-bold text-base text-[#ff4d4f]">{day.title}</div>
-                                                {day.dailyBudgetAllocated && (
-                                                    <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider">
-                                                        Daily Budget: ${day.dailyBudgetAllocated}
+                                            <div className="flex flex-col items-start w-full gap-2 mb-3">
+                                                <div className="w-full flex justify-between items-center">
+                                                    <div className="font-bold text-base text-[#ff4d4f] leading-snug">
+                                                        {day.title}
+                                                    </div>
+                                                    {day.dailyBudgetAllocated && (
+                                                        <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider ml-4">
+                                                            Daily Budget: ${day.dailyBudgetAllocated}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {day.weather && day.weather !== "No forecast available" && (
+                                                    <div className="text-sm font-medium text-blue-300 bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 w-fit">
+                                                        {typeof day.weather === 'string' ? day.weather : (
+                                                            <>
+                                                                <span className="text-lg">{day.weather.icon?.includes('rain') ? '🌧️' : day.weather.icon?.includes('cloud') ? '☁️' : '☀️'}</span>
+                                                                <span>
+                                                                    {day.weather.date && <span className="font-semibold">{new Date(day.weather.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: </span>}
+                                                                    {day.weather.avgTemp}°C, {day.weather.condition}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

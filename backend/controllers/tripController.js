@@ -59,7 +59,10 @@ exports.generateTrip = async (req, res, next) => {
         aiPlan = sanitizeItinerary(aiPlan, mode);
 
         // --- E. EXACT LOCATION DECORATION (Phase 2) ---
-        aiPlan = await attachExactLocations(aiPlan);
+        const decorationResult = await attachExactLocations(aiPlan, { origin, destination, originCoordinates, destinationCoordinates });
+        aiPlan = decorationResult.itinerary;
+        originCoordinates = decorationResult.originCoordinates;
+        destinationCoordinates = decorationResult.destinationCoordinates;
 
         // --- F. ROUTE OPTIMIZATION ---
         if (aiPlan.dailyPlan) {
@@ -82,8 +85,8 @@ exports.generateTrip = async (req, res, next) => {
             userId: req.user.userId,
             origin,
             destination,
-            originCoordinates,
-            destinationCoordinates,
+            originCoordinates: originCoordinates || decorationResult.originCoordinates,
+            destinationCoordinates: destinationCoordinates || decorationResult.destinationCoordinates,
             days,
             startDate,
             endDate,
@@ -189,13 +192,36 @@ exports.regenerateTrip = async (req, res, next) => {
         newItinerary = sanitizeItinerary(newItinerary, existingTrip.mode);
 
         // Attach exact locations (Phase 2)
-        newItinerary = await attachExactLocations(newItinerary);
+        const decorationResult = await attachExactLocations(newItinerary, {
+            origin: existingTrip.origin,
+            destination: existingTrip.destination,
+            originCoordinates: existingTrip.originCoordinates,
+            destinationCoordinates: existingTrip.destinationCoordinates
+        });
+        newItinerary = decorationResult.itinerary;
+
+        // Update coordinates if they were missing but geocoded now
+        if (!existingTrip.originCoordinates && decorationResult.originCoordinates) {
+            existingTrip.originCoordinates = decorationResult.originCoordinates;
+        }
+        if (!existingTrip.destinationCoordinates && decorationResult.destinationCoordinates) {
+            existingTrip.destinationCoordinates = decorationResult.destinationCoordinates;
+        }
 
         // Optimize the newly generated instruction-based plan
         if (newItinerary.dailyPlan) {
             for (let day of newItinerary.dailyPlan) {
                 day.activities = await optimizeDailyRoute(day.activities, existingTrip.destination);
             }
+        }
+
+        // --- WEATHER INTEGRATION for Regeneration ---
+        const weatherData = await getForecast(existingTrip.destination, existingTrip.startDate, existingTrip.days);
+        if (weatherData && newItinerary.days) {
+            newItinerary.days = newItinerary.days.map((dayPlan, index) => ({
+                ...dayPlan,
+                weather: weatherData[index] || "No forecast available"
+            }));
         }
 
         existingTrip.itinerary = newItinerary;
@@ -214,15 +240,12 @@ exports.regenerateTrip = async (req, res, next) => {
  */
 exports.deleteTrip = async (req, res, next) => {
     try {
-        const deletedTrip = await Trip.findOneAndDelete({
-            _id: req.params.id,
-            userId: req.user.userId
-        });
+        const deletedTrip = await Trip.findByIdAndDelete(req.params.id);
 
         if (!deletedTrip) return res.status(404).json({ message: "Trip not found" });
         if (isRedisReady()) await redisClient.del(`trip:${req.params.id}`);
 
-        res.json({ message: "Trip deleted successfully" });
+        res.status(200).json({ message: "Trip deleted successfully" });
     } catch (err) {
         next(err);
     }
@@ -307,12 +330,31 @@ exports.updateTrip = async (req, res, next) => {
         aiPlan = sanitizeItinerary(aiPlan, trip.mode);
 
         // Attach exact locations (Phase 2)
-        aiPlan = await attachExactLocations(aiPlan);
+        const decorationResult = await attachExactLocations(aiPlan, {
+            origin: trip.origin,
+            destination: trip.destination,
+            originCoordinates: trip.originCoordinates,
+            destinationCoordinates: trip.destinationCoordinates
+        });
+        aiPlan = decorationResult.itinerary;
+
+        // Update coordinates if geocoded during update
+        if (decorationResult.originCoordinates) trip.originCoordinates = decorationResult.originCoordinates;
+        if (decorationResult.destinationCoordinates) trip.destinationCoordinates = decorationResult.destinationCoordinates;
 
         if (aiPlan.dailyPlan) {
             for (let day of aiPlan.dailyPlan) {
                 day.activities = await optimizeDailyRoute(day.activities, trip.destination);
             }
+        }
+
+        // --- WEATHER INTEGRATION for Update ---
+        const weatherData = await getForecast(trip.destination, trip.startDate, trip.days);
+        if (weatherData && aiPlan.days) {
+            aiPlan.days = aiPlan.days.map((dayPlan, index) => ({
+                ...dayPlan,
+                weather: weatherData[index] || "No forecast available"
+            }));
         }
 
         trip.itinerary = aiPlan;
