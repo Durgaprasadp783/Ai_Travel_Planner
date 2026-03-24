@@ -14,10 +14,10 @@ export default function App() {
 
   return (
     <ProtectedRoute>
-        <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
+        <div className="max-w-[1200px] mx-auto px-4 pb-4 pt-0 lg:px-10 lg:pb-10 lg:pt-0 min-h-screen">
           <div className="glass-effect rounded-[40px] p-6 lg:p-12 mb-10 border border-white/5">
               <Title level={1} className="!text-white !mb-2 md:!text-5xl text-3xl font-black">
-                ✈️ Flight Planner
+                Flight Planner
               </Title>
               <Text className="!text-white/60 text-lg block mb-8">
                   Search active flights worldwide and trace routes instantly.

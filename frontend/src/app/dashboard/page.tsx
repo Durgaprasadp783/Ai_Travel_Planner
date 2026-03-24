@@ -92,7 +92,7 @@ export default function DashboardPage() {
     return (
         <ProtectedRoute>
             {contextHolder}
-            <div className="max-w-[1200px] mx-auto p-4 lg:p-10 min-h-screen">
+            <div className="max-w-[1200px] mx-auto px-4 pb-4 pt-0 lg:px-10 lg:pb-10 lg:pt-0 min-h-screen">
                 <div className="flex justify-between items-center mb-8">
                     <Title level={2} style={{ color: 'white', margin: 0 }}>My Adventures</Title>
                     <Link href="/plan">
