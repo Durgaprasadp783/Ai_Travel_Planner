@@ -11,13 +11,15 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * Merges budget constraints with dynamic persona-based prompting.
  */
 exports.getAIPlan = async (tripData) => {
+    const { destination, days, budget, mode, interests, peopleCount } = tripData;
     try {
-        const { destination, days, budget, mode, interests, peopleCount } = tripData;
         const totalBudget = budget;
         const dailyBudget = Math.floor(budget / days);
 
         // Get optimized budget info
         const budgetInfo = calculateAllocation(totalBudget, days, mode);
+
+        const interestString = interests && interests.length > 0 ? interests.join(', ') : 'General sightseeing';
 
         const prompt = `
             You are an expert travel planner. You MUST output ONLY valid JSON.
@@ -29,7 +31,12 @@ exports.getAIPlan = async (tripData) => {
             - Daily Budget: $${dailyBudget}
             - Mode: ${mode}
             - Group Size: ${peopleCount}
-            - Interests: ${interests ? interests.join(', ') : 'General'}
+            
+            CRITICAL PERSONALIZATION:
+            - Travel Personality: ${mode}
+            - User Interests: ${interestString}
+            
+            You MUST tailor every activity, restaurant, and suggestion to fit a "${mode}" and specifically focus on "${interestString}".
 
             STRICT BUDGET CONSTRAINTS (Values in USD):
             - Travel Tier: ${budgetInfo.tier}
@@ -79,9 +86,11 @@ exports.getAIPlan = async (tripData) => {
             travelMode: mode
         };
     } catch (error) {
-        console.error("AI GENERATION FAILED:", error.message);
-        // Fallback to high-quality Mock data so the app remains usable
-        return getMockData(tripData.destination, tripData.days, tripData.budget, tripData.mode);
+        console.error("AI SERVICE ERROR:", error.message);
+        console.log("🔄 QUOTA/ERROR DETECTED -> SWITCHING TO MOCK DATA FALLBACK...");
+        
+        // Ensure the app never crashes due to AI limits
+        return getMockData(destination, days, budget, mode);
     }
 };
 
@@ -154,19 +163,20 @@ function getMockData(destination, days, budget, mode) {
     const budgetInfo = calculateAllocation(budget || 1000, days || 3, mode);
 
     const mockActivities = [
-        { time: "09:00 AM", name: "Local Breakfast Spot", description: "Start your day with traditional local cuisine.", estimatedCost: 15 },
-        { time: "11:30 AM", name: "Modern Museum", description: "Explore the art and history of the region.", estimatedCost: 25 },
-        { time: "02:00 PM", name: "City Park Walk", description: "A relaxing stroll through the most famous park.", estimatedCost: 0 },
-        { time: "07:00 PM", name: "Highlight Dinner", description: "A highly-rated restaurant with local specialties.", estimatedCost: 40 },
-        { time: "09:30 PM", name: "Evening Viewpoint", description: "Catch the best views of the city at night.", estimatedCost: 0 }
+        { time: "09:00 AM", name: "High-Rated Local Breakfast", description: "Start your day with traditional local cuisine at a top-rated spot.", estimatedCost: 15 },
+        { time: "11:30 AM", name: "Modern Arts Center", description: "Explore the contemporary art and history of the region.", estimatedCost: 25 },
+        { time: "01:30 PM", name: "Authentic Lunch Experience", description: "Enjoy a curated lunch menu featuring regional specialties.", estimatedCost: 35 },
+        { time: "03:30 PM", name: "Iconic Landmark Walk", description: "A relaxing stroll through the most famous area of the city.", estimatedCost: 0 },
+        { time: "07:30 PM", name: "Culinary Highlight Dinner", description: "A signature multi-course dinner reflecting your travel personality.", estimatedCost: 55 },
+        { time: "09:30 PM", name: "City Skyline Viewpoint", description: "Catch the best panoramic views of the city at night.", estimatedCost: 0 }
     ];
 
     return {
         destination: destination || "Selected City",
-        overview: "A sample itinerary (Generated as fallback due to API limits).",
+        overview: "A premium sample itinerary (Displayed as a fallback due to AI API rate limits).",
         dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
             day: i + 1,
-            title: `Day ${i + 1}: Exploring ${destination || 'the city'}`,
+            title: `Day ${i + 1}: Immersive Discovery`,
             dailyBudgetAllocated: dailyBudget,
             activities: mockActivities
         })),

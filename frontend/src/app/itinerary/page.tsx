@@ -14,6 +14,8 @@ import { apiRequest } from '@/lib/api';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ItinerarySkeleton from '@/components/ItinerarySkeleton';
 import { Modal, Input, App } from 'antd';
+// Removed static import to avoid SSR issues
+// import html2pdf from 'html2pdf.js';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -30,29 +32,44 @@ export default function ItineraryPage() {
         if (!trip) return;
         setDownloading(true);
         try {
-            const response = await fetch('/api/pdf/generate', {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/pdf/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
                 },
                 body: JSON.stringify(trip),
             });
 
-            if (!response.ok) throw new Error('Failed to generate PDF');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
+            // 1. CRITICAL: Parse the response as a Blob, NOT as JSON
             const blob = await response.blob();
+
+            // 2. Create a temporary invisible link to trigger the download
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Itinerary_${(typeof trip.destination === 'object' ? trip.destination.name : trip.destination) || 'Trip'}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        } catch (error) {
-            console.error('Error downloading PDF:', error);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Set the filename
+            const destLabel = typeof trip.destination === 'object' ? trip.destination.name : trip.destination;
+            link.setAttribute('download', `Itinerary_${destLabel || 'Trip'}.pdf`);
+            
+            // 3. Append to body, click it, and clean up
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            message.success('PDF downloaded successfully!');
+        } catch (error: any) {
+            console.error('Download failed:', error);
             notification.error({
                 message: 'Download Failed',
-                description: 'Failed to download PDF. Ensure the backend is running.',
+                description: error.message || 'Failed to generate PDF. Please check your backend.',
                 placement: 'bottomRight'
             });
         } finally {
@@ -239,7 +256,7 @@ export default function ItineraryPage() {
                 </Button>
             </div>
 
-            <Row gutter={[24, 24]}>
+            <Row gutter={[24, 24]} id="trip-document" className="pdf-container">
                 {/* LEFT COLUMN: Trip Details & Map */}
                 <Col xs={24} lg={14}>
                     <Card className="glass-effect !bg-black/40 !border-white/10 !rounded-3xl !h-full border border-white/5">
@@ -267,8 +284,22 @@ export default function ItineraryPage() {
                             </Tag>
                         </div>
 
-                        {/* RENDER THE MAP HERE - Top on Mobile */}
-                        <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
+                        {/* Choose Interests Section styled for PDF and UI */}
+                        {trip.interests && trip.interests.length > 0 && (
+                            <div className="choose-interests-section mb-6" style={{ fontFamily: 'sans-serif', color: '#ffffff', backgroundColor: '#121212', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <h4 className="interests-title" style={{ fontSize: '16px', fontWeight: 600, marginBottom: '15px', color: '#e0e0e0', marginTop: 0 }}>Choose Interests</h4>
+                                <div className="interests-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                    {trip.interests.map((interest: string, index: number) => (
+                                        <span key={index} className="interest-pill" style={{ padding: '8px 20px', fontSize: '14px', color: '#b3b3b3', backgroundColor: 'transparent', border: '1px solid #404040', borderRadius: '20px', display: 'inline-block' }}>
+                                            {interest}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RENDER THE MAP HERE - Top on Mobile (Ignored in PDF for stability) */}
+                        <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner" data-html2canvas-ignore="true">
                             <RouteMap
                                 places={daysList.flatMap((day: any) => day.places || day.activities || day.plan || [])}
                                 origin={trip.origin}

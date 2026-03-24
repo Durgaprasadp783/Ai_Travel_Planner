@@ -48,6 +48,16 @@ const generateItineraryPDF = (itineraryData, filename = "itinerary.pdf") => {
                     .font("Helvetica")
                     .text(`Starting Point: ${origin}`, { align: "center" });
             }
+            
+            const interests = itineraryData.interests || [];
+            if (interests.length > 0) {
+                doc
+                    .fillColor("#8e44ad")
+                    .fontSize(12)
+                    .font("Helvetica-Oblique")
+                    .text(`Specified Interests: ${interests.join(", ")}`, { align: "center" });
+            }
+            
             doc.moveDown(0.5);
 
             // --- STATIC MAP INTEGRATION ---

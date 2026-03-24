@@ -147,11 +147,25 @@ export default function DashboardPage() {
                                                 <WalletOutlined className="mr-2 text-green-400" />
                                                 <span>Budget: ${trip.budget}</span>
                                             </div>
-                                            <div className="flex items-center text-gray-400 text-xs gap-3">
+                                            <div className="flex items-center text-gray-400 text-xs gap-3 flex-wrap">
                                                 <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase tracking-tighter">{trip.mode || 'solo'}</span>
                                                 <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10">{trip.peopleCount || 1} Travelers</span>
                                             </div>
                                         </div>
+
+                                        {/* Choose Interests Section */}
+                                        {trip.interests && trip.interests.length > 0 && (
+                                            <div className="choose-interests-section mt-4 mb-6" style={{ fontFamily: 'sans-serif', color: '#ffffff', backgroundColor: '#121212', padding: '15px', borderRadius: '12px' }}>
+                                                <h4 className="interests-title" style={{ fontSize: '16px', fontWeight: 600, marginBottom: '15px', color: '#e0e0e0', marginTop: 0 }}>Choose Interests</h4>
+                                                <div className="interests-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                    {trip.interests.map((interest: string, index: number) => (
+                                                        <span key={index} className="interest-pill" style={{ padding: '6px 16px', fontSize: '12px', color: '#b3b3b3', backgroundColor: 'transparent', border: '1px solid #404040', borderRadius: '20px', display: 'inline-block' }}>
+                                                            {interest}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="flex gap-3 mt-auto">
                                             <Link href="/itinerary" onClick={() => localStorage.setItem('lastPlannedTrip', JSON.stringify(trip))} className="flex-1">

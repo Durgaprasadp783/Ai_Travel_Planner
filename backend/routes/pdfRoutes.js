@@ -7,15 +7,10 @@ const path = require("path");
 // 1. PDF Generation Endpoint
 router.post("/generate", async (req, res, next) => {
     try {
-        const { itinerary } = req.body;
         console.log("📄 Generating PDF for Itinerary...");
 
-        if (!itinerary) {
-            return res.status(400).json({ error: "Itinerary data is required" });
-        }
-
-        // Generate the PDF file locally in Node.js
-        const filePath = await generateItineraryPDF(itinerary, `itinerary-${Date.now()}.pdf`);
+        // Use the entire body so we have access to destination, origin, and interests
+        const filePath = await generateItineraryPDF(req.body, `itinerary-${Date.now()}.pdf`);
 
         // Set headers and stream the PDF response
         res.setHeader("Content-Type", "application/pdf");
