@@ -65,11 +65,13 @@ app.use("/api/flights", require("./routes/flightRoutes"));
 app.use("/api/hotels", require("./routes/hotelRoutes"));
 app.use("/api/itinerary", itineraryRoutes);
 
+// Health Check Route (Paste it right here!)
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ message: 'Backend is alive and well!' });
+});
+
 // Error Handler
 app.use(errorHandler);
-
-// Health Check
-app.get("/", (req, res) => res.send("Travel Planner API is running..."));
 
 // 4. Start Server
 const PORT = process.env.PORT || 5000;

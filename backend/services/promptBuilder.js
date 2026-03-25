@@ -30,6 +30,7 @@ const buildTravelPrompt = (input) => {
 
     STRICT PLANNIG RULES:
     0. LOCATION BOUNDARY: CRITICAL: Every single place, restaurant, and activity you suggest MUST be physically located within the boundary of the exact destination city requested. Do NOT suggest places in neighboring cities, states, or countries. Double-check the coordinates/location of each suggestion to ensure it belongs to the destination city.
+    0.1 CRITICAL GEOGRAPHY RULE: You must provide accurate, real-world latitude and longitude coordinates for EVERY place, hotel, and activity. Every single coordinate pair MUST physically fall within the exact geographic boundaries of the destination city. DO NOT invent random coordinates. If you do not know the exact coordinates of a specific restaurant or museum, you MUST use the destination city's central coordinates and add a tiny microscopic offset (e.g., +/- 0.005) so the pins cluster correctly in the destination city on the map.
     1. START LOCATION: Day 1 MUST begin near the specified start point (${origin || 'City Center'}).
     2. GENERATE EXACTLY ${days} DAYS: Your response MUST include a unique "days" array entry for every single day from Day 1 to Day ${days}.
     3. VARIETY & UNIQUE CONTENT: Each day must feature DIFFERENT attractions and specific place names.

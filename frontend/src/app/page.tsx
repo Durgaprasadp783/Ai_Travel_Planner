@@ -19,10 +19,9 @@ export default function Home() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch('/api/health');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/health`);
         if (res.ok) {
           console.log('Backend connected');
-          message.success('Connected to Backend');
         } else {
           console.error('Backend Connection Failed');
         }

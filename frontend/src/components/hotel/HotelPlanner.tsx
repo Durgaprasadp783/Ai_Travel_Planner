@@ -12,7 +12,7 @@ const HotelPlanner: React.FC = () => {
     const [checkOut, setCheckOut] = useState('');
     const [guests, setGuests] = useState<number>(2);
     const [sortBy, setSortBy] = useState('recommended');
-    
+
     const [hotels, setHotels] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
@@ -30,17 +30,17 @@ const HotelPlanner: React.FC = () => {
             // Passing all new parameters to the backend
             const endpoint = `/hotels?city=${city.toUpperCase()}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}&sortBy=${sortBy}`;
             const data = await apiRequest(endpoint, { method: "GET" });
-            
+
             // Assuming the API returns an array directly or inside a results field
             setHotels(Array.isArray(data) ? data : (data.results || []));
-            
+
             if (Array.isArray(data) && data.length === 0) {
                 message.info("No stays found for these dates. Try adjusting your search.");
             }
         } catch (err: any) {
             console.error("API Error:", err);
             message.error(err.message || 'Failed to fetch real-time data. Check your API connection.');
-            setHotels([]); 
+            setHotels([]);
         } finally {
             setLoading(false);
         }
@@ -50,7 +50,7 @@ const HotelPlanner: React.FC = () => {
         <div className="bg-[#161616] border border-white/10 rounded-[2.5rem] p-8 w-full shadow-2xl flex flex-col min-h-[600px] glass-effect relative overflow-hidden">
             {/* Background design accents */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4A5A]/10 blur-[80px] rounded-full -mr-10 -mt-10 pointer-events-none" />
-            
+
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-2">
                     <HomeOutlined className="text-[#FF4A5A] text-2xl" />
@@ -63,23 +63,23 @@ const HotelPlanner: React.FC = () => {
 
             {/* Input Group - Responsive Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 relative z-10">
-                
+
                 {/* City Input */}
                 <div className="md:col-span-2 bg-[#202020] border border-white/5 rounded-2xl flex items-center px-4 py-3 hover:border-[#FF4A5A]/30 transition-colors group">
                     <HomeOutlined className="text-gray-500 mr-3 group-hover:text-[#FF4A5A] transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="City (e.g., GOA)" 
+                    <input
+                        type="text"
+                        placeholder="City (e.g., GOA)"
                         value={city}
                         onChange={(e) => setCity(e.target.value.toUpperCase())}
                         className="bg-transparent text-white w-full focus:outline-none placeholder-gray-600 font-bold tracking-wider"
                     />
                 </div>
-                
+
                 {/* Native Date Pickers */}
                 <div className="bg-[#202020] border border-white/5 rounded-2xl flex items-center px-4 py-3 hover:border-[#FF4A5A]/30 transition-colors">
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         value={checkIn}
                         onChange={(e) => setCheckIn(e.target.value)}
                         className="bg-transparent text-gray-300 w-full focus:outline-none [color-scheme:dark] cursor-pointer"
@@ -88,8 +88,8 @@ const HotelPlanner: React.FC = () => {
                 </div>
 
                 <div className="bg-[#202020] border border-white/5 rounded-2xl flex items-center px-4 py-3 hover:border-[#FF4A5A]/30 transition-colors">
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         value={checkOut}
                         onChange={(e) => setCheckOut(e.target.value)}
                         className="bg-transparent text-gray-300 w-full focus:outline-none [color-scheme:dark] cursor-pointer"
@@ -97,7 +97,7 @@ const HotelPlanner: React.FC = () => {
                     />
                 </div>
 
-                <Button 
+                <Button
                     type="primary"
                     size="large"
                     icon={<SearchOutlined />}
@@ -113,9 +113,9 @@ const HotelPlanner: React.FC = () => {
             <div className="flex flex-wrap gap-6 mb-10 border-b border-white/5 pb-6 relative z-10">
                 <div className="flex items-center gap-3">
                     <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Guests</span>
-                    <InputNumber 
-                        min={1} 
-                        max={10} 
+                    <InputNumber
+                        min={1}
+                        max={10}
                         value={guests}
                         onChange={(val) => setGuests(val || 1)}
                         className="!bg-[#202020] !border-white/5 !text-white !rounded-xl !w-20 hover:!border-[#FF4A5A]/30"
@@ -125,12 +125,13 @@ const HotelPlanner: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Sort By</span>
-                    <Select 
+                    <Select
                         value={sortBy}
                         onChange={(val) => setSortBy(val)}
                         className="!bg-[#202020] !border-white/5 !text-white !rounded-xl !w-44 custom-antd-select"
                         suffixIcon={<FilterOutlined className="text-gray-500" />}
-                        dropdownClassName="!bg-[#1a1a1a] !border-white/10"
+                        // 1. THIS IS THE ONLY LINE THAT CHANGED (Fixed deprecation warning):
+                        classNames={{ popup: { root: "!bg-[#1a1a1a] !border-white/10" } }}
                         options={[
                             { value: 'recommended', label: 'Recommended' },
                             { value: 'price_low', label: 'Price (Lowest)' },
@@ -144,7 +145,7 @@ const HotelPlanner: React.FC = () => {
             <div className="flex-1 relative z-10 rounded-3xl overflow-hidden">
                 <AnimatePresence mode="wait">
                     {loading ? (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -155,14 +156,14 @@ const HotelPlanner: React.FC = () => {
                         </motion.div>
                     ) : !hasSearched ? (
                         <div className="h-full min-h-[300px] flex items-center justify-center bg-white/5 rounded-3xl opacity-30">
-                             <Empty description={<span className="text-gray-400 italic">Enter location & dates to browse available stays.</span>} />
+                            <Empty description={<span className="text-gray-400 italic">Enter location & dates to browse available stays.</span>} />
                         </div>
                     ) : hotels.length === 0 ? (
                         <div className="h-full min-h-[300px] flex items-center justify-center bg-white/5 rounded-3xl">
                             <p className="text-gray-400 italic">No stays found for these criteria. Try adjusting your search.</p>
                         </div>
                     ) : (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-4"
@@ -174,10 +175,10 @@ const HotelPlanner: React.FC = () => {
                                 </h4>
                                 <span className="text-gray-500 text-xs bg-white/5 px-3 py-1 rounded-full border border-white/5">{hotels.length} Properties Found</span>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 gap-4">
                                 {hotels.map((hotel, idx) => (
-                                    <motion.div 
+                                    <motion.div
                                         key={idx}
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
