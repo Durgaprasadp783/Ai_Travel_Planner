@@ -301,7 +301,7 @@ export default function ItineraryPage() {
                                     }
 
                                     return {
-                                        children: (
+                                        content: (
                                             <motion.div variants={itemVariants} className="text-white pb-6 w-full text-left">
                                                 <div
                                                     className="flex flex-col items-start w-full gap-2 mb-3 text-left cursor-pointer group rounded-xl p-2 -ml-2 hover:bg-white/5 transition-colors"
@@ -401,7 +401,7 @@ export default function ItineraryPage() {
                                 }) || [
                                         {
                                             label: <span className="text-gray-400">Error</span>,
-                                            children: (
+                                            content: (
                                                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                                                     <span className="text-red-400">Itinerary data is not available. Please try regenerating the trip.</span>
                                                 </div>
