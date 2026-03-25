@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker, InfoWindow, Polyline } from "@react-google-maps/api";
 
 const containerStyle = {
     width: "100%",
@@ -24,6 +24,7 @@ interface Place {
 
 interface RouteMapProps {
     places: Place[];
+    flights?: any[];
     origin?: string;
     destination?: string;
     originCoords?: [number, number]; // [lng, lat]
@@ -42,7 +43,7 @@ const mapDarkTheme = [
     { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
 ];
 
-export default function RouteMap({ places, origin, destination, originCoords, destinationCoords }: RouteMapProps) {
+export default function RouteMap({ places, flights, origin, destination, originCoords, destinationCoords }: RouteMapProps) {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
@@ -50,7 +51,7 @@ export default function RouteMap({ places, origin, destination, originCoords, de
     });
 
     const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-    const [markers, setMarkers] = useState<{ lat: number, lng: number, place: Place, isEndpoint?: boolean }[]>([]);
+    const [markers, setMarkers] = useState<{ lat: number, lng: number, place: Place, isEndpoint?: boolean, index?: number }[]>([]);
     const [selectedMarker, setSelectedMarker] = useState<{ lat: number, lng: number, place: Place } | null>(null);
     const [placeDetails, setPlaceDetails] = useState<any>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -69,28 +70,31 @@ export default function RouteMap({ places, origin, destination, originCoords, de
         const getLocationString = (p: Place) => p.location || p.address || p.name || p.description || "";
         const validPlaces = (places || []).filter(p => getLocationString(p).trim() !== "");
 
-        const startAddr = origin || (validPlaces.length > 0 ? getLocationString(validPlaces[0]) : "");
-        const endAddr = destination || (validPlaces.length > 0 ? getLocationString(validPlaces[validPlaces.length - 1]) : "");
+        const getConstrainedLocation = (loc: string) => {
+             if (!loc) return "";
+             if (destination && !loc.toLowerCase().includes(destination.toLowerCase())) {
+                 return `${loc}, ${destination}`;
+             }
+             return loc;
+        };
 
-        const startCoords = originCoords ? { lat: originCoords[1], lng: originCoords[0] } : null;
-        const endCoords = destinationCoords ? { lat: destinationCoords[1], lng: destinationCoords[0] } : null;
+        let startAddr = origin || "";
+        let endAddr = destination || "";
 
-        if (!startAddr && !startCoords) return;
+        if (!startAddr && validPlaces.length > 0) {
+             startAddr = getConstrainedLocation(getLocationString(validPlaces[0]));
+             endAddr = getConstrainedLocation(getLocationString(validPlaces[validPlaces.length - 1]));
+        }
+
+        if (!startAddr) return;
 
         const directionsService = new window.google.maps.DirectionsService();
 
         directionsService.route(
             {
-                origin: startCoords || startAddr || "",
-                destination: endCoords || endAddr || "",
-                waypoints: validPlaces
-                    .filter(p => getLocationString(p) !== startAddr && getLocationString(p) !== endAddr)
-                    .slice(0, 20)
-                    .map(place => ({
-                        location: getLocationString(place),
-                        stopover: true
-                    })),
-                optimizeWaypoints: true,
+                origin: startAddr,
+                destination: endAddr,
+                waypoints: [],
                 travelMode: window.google.maps.TravelMode.DRIVING
             },
             (result, status) => {
@@ -103,26 +107,22 @@ export default function RouteMap({ places, origin, destination, originCoords, de
                         newMarkers.push({
                             lat: legs[0].start_location.lat(),
                             lng: legs[0].start_location.lng(),
-                            place: { name: origin || "Start Point", address: origin || "" },
-                            isEndpoint: true
+                            place: { name: startAddr || "Origin", address: startAddr || "" },
+                            isEndpoint: true,
+                            index: 1
                         });
-                        for (let i = 0; i < legs.length; i++) {
-                            newMarkers.push({
-                                lat: legs[i].end_location.lat(),
-                                lng: legs[i].end_location.lng(),
-                                place: i === legs.length - 1 ? { name: destination || "Destination", address: destination || "" } : validPlaces[i],
-                                isEndpoint: i === legs.length - 1
-                            });
-                        }
+                        newMarkers.push({
+                            lat: legs[legs.length - 1].end_location.lat(),
+                            lng: legs[legs.length - 1].end_location.lng(),
+                            place: { name: endAddr || "Destination", address: endAddr || "" },
+                            isEndpoint: true,
+                            index: 2
+                        });
                         setMarkers(newMarkers);
                     }
                 } else {
-                    console.warn("Directions request failed, using fallback markers:", status);
-                    const fallback: any[] = [];
-                    if (startCoords) fallback.push({ ...startCoords, place: { name: "Start Point" }, isEndpoint: true });
-                    if (endCoords) fallback.push({ ...endCoords, place: { name: "Destination" }, isEndpoint: true });
-                    setMarkers(fallback);
-                    if (fallback.length > 0) fitBounds(fallback);
+                    console.warn("Directions request failed:", status);
+                    setMarkers([]);
                 }
             }
         );
@@ -185,17 +185,15 @@ export default function RouteMap({ places, origin, destination, originCoords, de
                     key={i}
                     position={{ lat: marker.lat, lng: marker.lng }}
                     onClick={() => handleMarkerClick(marker)}
-                    icon={marker.isEndpoint ? {
-                        url: i === 0 ? "http://maps.google.com/mapfiles/ms/icons/red-dot.png" : "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                    } : {
-                        url: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png"
+                    icon={{
+                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
                     }}
-                    label={!marker.isEndpoint ? {
-                        text: String(i),
+                    label={{
+                        text: String(marker.index || (i + 1)),
                         color: "black",
                         fontWeight: "bold",
                         fontSize: "10px"
-                    } : undefined}
+                    }}
                 />
             ))}
 
@@ -223,6 +221,25 @@ export default function RouteMap({ places, origin, destination, originCoords, de
                     </div>
                 </InfoWindow>
             )}
+
+            {(flights || []).map((flight: any, i: number) => {
+                const dep_lat = flight.dep_lat;
+                const dep_lng = flight.dep_lng;
+                const arr_lat = flight.arr_lat;
+                const arr_lng = flight.arr_lng;
+                
+                if (!dep_lat || !arr_lat) return null;
+                return (
+                    <Polyline
+                        key={`flight-${i}`}
+                        path={[
+                            { lat: dep_lat, lng: dep_lng },
+                            { lat: arr_lat, lng: arr_lng }
+                        ]}
+                        options={{ strokeColor: "#FF0000", geodesic: true, strokeWeight: 3, strokeOpacity: 0.8 }}
+                    />
+                );
+            })}
         </GoogleMap>
     );
 }

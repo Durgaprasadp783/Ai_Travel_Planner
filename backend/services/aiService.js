@@ -42,6 +42,7 @@ exports.getAIPlan = async (tripData) => {
             2. Every day MUST include Morning Activity, Lunch, Afternoon Activity, Dinner, and Evening Activity.
             3. Provide realistic "estimatedCost" for each item. 
             4. The total cost of activities for a single day MUST NOT exceed $${dailyBudget}.
+            5. EVERY activity MUST be an actual, real-world, famous place strictly located WITHIN the destination city (${destination}). Do not provide generic names, use the actual specific name and include a precise "location".
 
             REQUIRED JSON FORMAT:
             {
@@ -52,9 +53,9 @@ exports.getAIPlan = async (tripData) => {
                   "title": "Arrival and Exploration",
                   "dailyBudgetAllocated": ${dailyBudget},
                   "activities": [
-                    { "time": "10:00 AM", "name": "Visit [Landmark]", "type": "activity", "estimatedCost": 25, "description": "Details..." },
-                    { "time": "01:00 PM", "name": "Lunch at [Restaurant Name]", "type": "lunch", "estimatedCost": 30, "description": "Details..." },
-                    { "time": "07:00 PM", "name": "Dinner at [Restaurant Name]", "type": "dinner", "estimatedCost": 45, "description": "Details..." }
+                    { "time": "10:00 AM", "name": "Visit [Specific Landmark]", "location": "Exact Address, ${destination}", "type": "activity", "estimatedCost": 25, "description": "Details..." },
+                    { "time": "01:00 PM", "name": "Lunch at [Specific Restaurant]", "location": "Exact Address, ${destination}", "type": "lunch", "estimatedCost": 30, "description": "Details..." },
+                    { "time": "07:00 PM", "name": "Dinner at [Specific Restaurant]", "location": "Exact Address, ${destination}", "type": "dinner", "estimatedCost": 45, "description": "Details..." }
                   ]
                 }
               ]
@@ -154,11 +155,11 @@ function getMockData(destination, days, budget, mode) {
     const budgetInfo = calculateAllocation(budget || 1000, days || 3, mode);
 
     const mockActivities = [
-        { time: "09:00 AM", name: "Local Breakfast Spot", description: "Start your day with traditional local cuisine.", estimatedCost: 15 },
-        { time: "11:30 AM", name: "Modern Museum", description: "Explore the art and history of the region.", estimatedCost: 25 },
-        { time: "02:00 PM", name: "City Park Walk", description: "A relaxing stroll through the most famous park.", estimatedCost: 0 },
-        { time: "07:00 PM", name: "Highlight Dinner", description: "A highly-rated restaurant with local specialties.", estimatedCost: 40 },
-        { time: "09:30 PM", name: "Evening Viewpoint", description: "Catch the best views of the city at night.", estimatedCost: 0 }
+        { time: "09:00 AM", name: "Famous Breakfast Spot", location: `City Center, ${destination}`, description: "Start your day with traditional local cuisine.", estimatedCost: 15 },
+        { time: "11:30 AM", name: "City Museum", location: `Downtown, ${destination}`, description: "Explore the art and history of the region.", estimatedCost: 25 },
+        { time: "02:00 PM", name: "Botanical Gardens", location: `Main Park, ${destination}`, description: "A relaxing stroll through the most famous park.", estimatedCost: 0 },
+        { time: "07:00 PM", name: "Local Signature Dining", location: `Restaurant Row, ${destination}`, description: "A highly-rated restaurant with local specialties.", estimatedCost: 40 },
+        { time: "09:30 PM", name: "City Viewpoint", location: `High Altitude Lounge, ${destination}`, description: "Catch the best views of the city at night.", estimatedCost: 0 }
     ];
 
     return {

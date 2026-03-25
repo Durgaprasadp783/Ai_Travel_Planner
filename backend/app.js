@@ -11,6 +11,7 @@ const mapsRoutes = require("./routes/mapsRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const smartRoutes = require("./routes/smartPromptRoutes");
 const budgetRoutes = require("./routes/budgetRoutes");
+const itineraryRoutes = require("./routes/itineraryRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 
 require("./db");
@@ -61,6 +62,7 @@ app.use("/api/pdf", pdfRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api", smartRoutes);
 app.use("/api/flights", require("./routes/flightRoutes"));
+app.use("/api/itinerary", itineraryRoutes);
 
 // Error Handler
 app.use(errorHandler);
