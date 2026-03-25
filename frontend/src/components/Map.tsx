@@ -113,12 +113,15 @@ export default function TripMap({ origin, destination, originCoordinates, destin
             iconAnchor: [14, 14]
         });
 
+        const activityCoords: [number, number][] = [];
+
         if (itinerary?.dailyPlan) {
             itinerary.dailyPlan.forEach((day: any) => {
                 day.activities?.forEach((act: any) => {
                     if (act.lat && act.lng) {
                         const actCoords: [number, number] = [act.lat, act.lng];
                         allPoints.push(actCoords);
+                        activityCoords.push(actCoords);
 
                         L.marker(actCoords, { icon: activityIcon })
                             .addTo(map.current!)
@@ -126,6 +129,16 @@ export default function TripMap({ origin, destination, originCoordinates, destin
                     }
                 });
             });
+        }
+
+        // Draw Road Route (Activity Path)
+        if (activityCoords.length > 1) {
+            L.polyline(activityCoords, {
+                color: '#3b82f6', // blue
+                weight: 4,
+                opacity: 0.8,
+                dashArray: '5, 10',
+            }).addTo(map.current!);
         }
 
         // 3. FIT BOUNDS (Including all activities)

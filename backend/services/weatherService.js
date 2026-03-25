@@ -4,8 +4,16 @@ const axios = require("axios");
 exports.getForecast = async (destination, startDate, days) => {
     const apiKey = process.env.WEATHER_API_KEY;
 
-    // Use startDate in the timeline if provided
-    const dateQuery = startDate ? `/${startDate}` : "";
+    // Calculate endDate based on startDate and days
+    let dateQuery = "";
+    if (startDate) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + days - 1);
+        const endDateStr = end.toISOString().split('T')[0];
+        dateQuery = `/${startDate}/${endDateStr}`;
+    }
+
     const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${destination}${dateQuery}?unitGroup=metric&key=${apiKey}&contentType=json`;
 
     try {
