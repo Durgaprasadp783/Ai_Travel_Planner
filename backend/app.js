@@ -61,6 +61,8 @@ app.use("/api/pdf", pdfRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api", smartRoutes);
 app.use("/api/flights", require("./routes/flightRoutes"));
+app.use("/api/hotels", require("./routes/hotelRoutes"));
+
 
 // Error Handler
 app.use(errorHandler);

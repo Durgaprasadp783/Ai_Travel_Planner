@@ -61,33 +61,16 @@ export default function DashboardPage() {
     }, []);
 
     const handleDelete = async (tripId: string) => {
-        if (!window.confirm('Are you sure you want to delete this trip?')) return;
-
         try {
-            const token = localStorage.getItem('token');
-
-            // ✅ THE FIX: Provide localhost:5000 as a fallback if env is missing
-            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-            const res = await fetch(`${baseUrl}/api/trips/${tripId}`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            if (res.ok) {
-                setTrips(prevTrips => prevTrips.filter(trip => trip._id !== tripId));
-                messageApi.success('Trip deleted successfully');
-            } else {
-                messageApi.error('Failed to delete trip');
-            }
-        } catch (error) {
+            await apiRequest(`/trips/${tripId}`, { method: "DELETE" });
+            setTrips(prevTrips => prevTrips.filter(trip => trip._id !== tripId));
+            messageApi.success('Trip deleted successfully');
+        } catch (error: any) {
             console.error(error);
-            messageApi.error('Failed to delete trip');
+            messageApi.error(error.message || 'Failed to delete trip');
         }
     };
+
 
     return (
         <ProtectedRoute>
@@ -178,12 +161,21 @@ export default function DashboardPage() {
                                                 </Button>
                                             </Link>
 
-                                            <Button
-                                                danger
-                                                icon={<DeleteOutlined />}
-                                                className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30 !h-12 !w-12 !rounded-xl flex justify-center items-center"
-                                                onClick={() => handleDelete(trip._id)}
-                                            />
+                                            <Popconfirm
+                                                title="Delete this adventure?"
+                                                description="This will permanently remove the trip and itinerary."
+                                                onConfirm={() => handleDelete(trip._id)}
+                                                okText="Yes, Delete"
+                                                cancelText="Cancel"
+                                                okButtonProps={{ danger: true, className: '!bg-red-500 hover:!bg-red-600' }}
+                                            >
+                                                <Button
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    className="!bg-red-500/10 !border-red-500/30 hover:!bg-red-500/30 !h-12 !w-12 !rounded-xl flex justify-center items-center"
+                                                />
+                                            </Popconfirm>
+
                                         </div>
                                     </div>
                                 </motion.div>
