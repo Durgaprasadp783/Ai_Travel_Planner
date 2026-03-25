@@ -6,14 +6,14 @@ import { ArrowLeftOutlined, PrinterOutlined, DownloadOutlined, ShareAltOutlined 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
-// 1. Import Dynamic to load the map only on the client side
-// 1. Import dynamic to load map only on client side (if needed later)
-// import dynamic from 'next/dynamic';
+import dynamic from 'next/dynamic';
 import RouteMap from '@/components/RouteMap';
+const TripMap = dynamic(() => import('@/components/Map'), { ssr: false });
 import { apiRequest } from '@/lib/api';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ItinerarySkeleton from '@/components/ItinerarySkeleton';
 import { App } from 'antd';
+import { generatePdfFromData } from '@/utils/generatePdf';
 
 const { Title, Text } = Typography;
 
@@ -21,6 +21,7 @@ export default function ItineraryPage() {
     const { message, notification } = App.useApp();
     const [trip, setTrip] = useState<any>(null);
     const [downloading, setDownloading] = useState(false);
+    const [showFlightRoute, setShowFlightRoute] = useState(false);
     const [expandedDays, setExpandedDays] = useState<number[]>([0]);
 
     const toggleDay = (idx: number) => {
@@ -33,44 +34,12 @@ export default function ItineraryPage() {
         if (!trip) return;
         setDownloading(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/pdf/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: JSON.stringify(trip),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // 1. CRITICAL: Parse the response as a Blob, NOT as JSON
-            const blob = await response.blob();
-
-            // 2. Create a temporary invisible link to trigger the download
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            // Set the filename
-            const destLabel = typeof trip.destination === 'object' ? trip.destination.name : trip.destination;
-            link.setAttribute('download', `Itinerary_${destLabel || 'Trip'}.pdf`);
-            
-            // 3. Append to body, click it, and clean up
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode?.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            message.success('PDF downloaded successfully!');
+            await generatePdfFromData(trip, cityForMap, daysList);
         } catch (error: any) {
-            console.error('Download failed:', error);
+            console.error('Error downloading PDF:', error);
             notification.error({
                 message: 'Download Failed',
-                description: error.message || 'Failed to generate PDF. Please check your backend.',
+                description: `Failed to download PDF: ${error.message || String(error)}`,
                 placement: 'bottomRight'
             });
         } finally {
@@ -203,6 +172,7 @@ export default function ItineraryPage() {
                 </Link>
             </div>
 
+            <div id="trip-container">
             <Row gutter={[24, 24]} id="trip-document" className="pdf-container">
                 {/* LEFT COLUMN: Trip Details & Map */}
                 <Col xs={24} lg={14}>
@@ -217,9 +187,7 @@ export default function ItineraryPage() {
                         </div>
 
                         <div className="flex flex-wrap gap-2 mb-6">
-                            <Tag color="red" className="!bg-[#ff4d4f]/20 !border-[#ff4d4f]/30 !text-[#ff4d4f] !px-3 !py-1.5 !text-sm !rounded-lg m-0">
-                                {trip.startDate} to {trip.endDate}
-                            </Tag>
+
                             <Tag color="blue" className="!bg-blue-500/10 !border-blue-500/20 !text-blue-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0 uppercase font-bold">
                                 {trip.mode || 'Solo'} Mode
                             </Tag>
@@ -245,15 +213,35 @@ export default function ItineraryPage() {
                             </div>
                         )}
 
-                        {/* RENDER THE MAP HERE - Top on Mobile (Ignored in PDF for stability) */}
-                        <div className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner" data-html2canvas-ignore="true">
-                            <RouteMap
-                                places={daysList.flatMap((day: any) => day.places || day.activities || day.plan || [])}
-                                origin={trip.origin}
-                                destination={cityForMap}
-                                originCoords={trip.originCoordinates}
-                                destinationCoords={trip.destinationCoordinates}
-                            />
+                        {/* RENDER THE MAP HERE - Top on Mobile - Ignored by HTML2Canvas */}
+                        <div data-html2canvas-ignore="true" className="w-full flex justify-end mb-2">
+                            <Button 
+                                type="default" 
+                                className={`!rounded-full px-5 font-bold tracking-wider text-xs border border-white/20 transition-all ${showFlightRoute ? '!bg-white !text-black' : '!bg-black/50 !text-white'}`}
+                                onClick={() => setShowFlightRoute(!showFlightRoute)}
+                            >
+                                {showFlightRoute ? "ROAD ROUTE" : "FLIGHT ROUTE"}
+                            </Button>
+                        </div>
+                        <div data-html2canvas-ignore="true" className="w-full h-[350px] lg:h-[450px] mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-inner relative">
+                            {showFlightRoute ? (
+                                <TripMap 
+                                    origin={trip.origin}
+                                    destination={cityForMap}
+                                    originCoordinates={trip.originCoordinates}
+                                    destinationCoordinates={trip.destinationCoordinates}
+                                    itinerary={{ dailyPlan: daysList }}
+                                />
+                            ) : (
+                                <RouteMap
+                                    places={daysList.flatMap((day: any) => day.places || day.activities || day.plan || [])}
+                                    flights={daysList.filter((day: any) => day.flight).map((day: any) => day.flight)}
+                                    origin={trip.origin}
+                                    destination={cityForMap}
+                                    originCoords={trip.originCoordinates}
+                                    destinationCoords={trip.destinationCoordinates}
+                                />
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -344,6 +332,13 @@ export default function ItineraryPage() {
                                                         </div>
                                                     )}
                                                 </div>
+                                                {day.flight && (
+                                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 shadow-sm mb-3">
+                                                        <p className="text-white font-bold mb-1">✈️ Airline: {day.flight.airline} {day.flight.flight ? `(${day.flight.flight})` : ''}</p>
+                                                        <p className="text-gray-300 text-sm">Route: {day.flight.from || trip.origin} → {day.flight.to || cityForMap}</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Time: {day.flight.departure} → {day.flight.arrival}</p>
+                                                    </div>
+                                                )}
                                                 <AnimatePresence>
                                                     {expandedDays.includes(i) && (
                                                         <motion.div
@@ -408,6 +403,7 @@ export default function ItineraryPage() {
                     </Card>
                 </Col>
             </Row>
+            </div>
 
 
         </div>

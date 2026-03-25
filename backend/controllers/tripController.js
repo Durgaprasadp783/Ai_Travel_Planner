@@ -130,7 +130,7 @@ exports.getAllTrips = async (req, res, next) => {
         const skip = (page - 1) * limit;
 
         const trips = await Trip.find({ userId: req.user.userId })
-            .select("destination days budget createdAt itinerary mode peopleCount interests")
+            .select("destination origin originCoordinates destinationCoordinates startDate endDate days budget createdAt itinerary mode peopleCount interests")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
