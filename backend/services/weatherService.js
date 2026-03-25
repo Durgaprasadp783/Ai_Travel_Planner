@@ -1,37 +1,52 @@
 // services/weatherService.js
 const axios = require("axios");
 
-exports.getForecast = async (destination, startDate, days) => {
+exports.getForecast = async (destination, startDate, days, coordinates = null) => {
     const apiKey = process.env.WEATHER_API_KEY;
-
-    // Calculate endDate based on startDate and days
-    let dateQuery = "";
-    if (startDate) {
-        const start = new Date(startDate);
-        const end = new Date(start);
-        end.setDate(start.getDate() + days - 1);
-        const endDateStr = end.toISOString().split('T')[0];
-        dateQuery = `/${startDate}/${endDateStr}`;
+    if (!apiKey) {
+        console.error("WEATHER_API_KEY is missing in .env");
+        return null;
     }
 
-    const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${destination}${dateQuery}?unitGroup=metric&key=${apiKey}&contentType=json`;
+    let url = "";
+    if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
+        // Use coordinates if preferred/available
+        url = `https://api.openweathermap.org/data/2.5/forecast?lat=${coordinates[0]}&lon=${coordinates[1]}&appid=${apiKey}&units=metric`;
+    } else {
+        // Fallback to destination name
+        url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(destination)}&appid=${apiKey}&units=metric`;
+    }
 
     try {
         const response = await axios.get(url);
 
-        if (!response.data || !response.data.days) return null;
+        if (!response.data || !response.data.list) return null;
 
-        // We map the Visual Crossing data to match your previous schema
-        return response.data.days.slice(0, days).map(day => ({
-            date: day.datetime,
-            avgTemp: day.temp,
-            condition: day.conditions,
-            icon: day.icon, // Visual Crossing returns icon names (e.g., "rain", "partly-cloudy-day")
-            chanceOfRain: day.precipprob // Probability of precipitation
-        }));
+        // OWM 2.5 Forecast gives 5 days/3 hours (40 timestamps)
+        // We need to pick one representative entry per day (ideally around noon)
+        const dailyData = {};
+        
+        response.data.list.forEach(entry => {
+            const date = entry.dt_txt.split(" ")[0]; // Get YYYY-MM-DD
+            const time = entry.dt_txt.split(" ")[1]; // Get HH:mm:ss
+            
+            // Prefer 12:00:00, or the first one we find for that day
+            if (!dailyData[date] || time === "12:00:00") {
+                dailyData[date] = {
+                    date: date,
+                    avgTemp: Math.round(entry.main.temp),
+                    condition: entry.weather[0].description,
+                    icon: entry.weather[0].icon, // e.g. "04d"
+                    chanceOfRain: entry.pop ? Math.round(entry.pop * 100) : 0
+                };
+            }
+        });
+
+        // Convert object back to array and sort by date
+        return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date)).slice(0, days);
+        
     } catch (error) {
-        // Detailed error logging for debugging in your terminal
-        console.error("Visual Crossing API Error:", error.response?.data || error.message);
+        console.error("OpenWeatherMap API Error:", error.response?.data || error.message);
         return null;
     }
-};
+};

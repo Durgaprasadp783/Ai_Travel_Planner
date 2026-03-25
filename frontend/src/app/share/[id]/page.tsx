@@ -164,7 +164,7 @@ export default function SharedItineraryPage() {
                             mode="left"
                             items={trip.itinerary?.dailyPlan?.map((day: any) => ({
                                 label: <span className="text-gray-400 font-medium">Day {day.day}</span>,
-                                children: (
+                                content: (
                                     <div className="text-white pb-6">
                                         <div className="font-bold mb-2 text-base text-[#ff4d4f]">{day.title}</div>
                                         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">

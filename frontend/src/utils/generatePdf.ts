@@ -153,7 +153,10 @@ export const generatePdfFromData = async (trip: any, cityForMap: string, daysLis
                     if (dateStr) {
                         dayTitle += ` - ${dateStr}`;
                     }
-                    weatherStr = `${day.weather.condition || 'Unknown'}, ${day.weather.avgTemp || '--'}°C`;
+                    weatherStr = `${day.weather.condition.charAt(0).toUpperCase() + day.weather.condition.slice(1)}, ${day.weather.avgTemp || '--'}°C`;
+                    if (day.weather.chanceOfRain > 0) {
+                        weatherStr += ` (${day.weather.chanceOfRain}% Rain)`;
+                    }
                 }
             }
 
@@ -167,9 +170,9 @@ export const generatePdfFromData = async (trip: any, cityForMap: string, daysLis
 
             if (weatherStr) {
                 doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                doc.setFont("helvetica", "italic");
-                doc.text(`Weather Forecast: ${weatherStr}`, 14, startY);
+                doc.setTextColor(50, 50, 50); // Darker color for readability
+                doc.setFont("helvetica", "bold");
+                doc.text(`Forecast: ${weatherStr}`, 14, startY);
                 startY += 8;
             }
 
