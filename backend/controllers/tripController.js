@@ -72,7 +72,7 @@ exports.generateTrip = async (req, res, next) => {
         }
 
         // --- G. WEATHER INTEGRATION ---
-        const weatherData = await getForecast(destination, startDate, days);
+        const weatherData = await getForecast(destination, startDate, days, destinationCoordinates);
         if (weatherData && aiPlan.dailyPlan) {
             aiPlan.dailyPlan = aiPlan.dailyPlan.map((dayPlan, index) => ({
                 ...dayPlan,
@@ -217,7 +217,7 @@ exports.regenerateTrip = async (req, res, next) => {
         }
 
         // --- WEATHER INTEGRATION for Regeneration ---
-        const weatherData = await getForecast(existingTrip.destination, existingTrip.startDate, existingTrip.days);
+        const weatherData = await getForecast(existingTrip.destination, existingTrip.startDate, existingTrip.days, existingTrip.destinationCoordinates);
         if (weatherData && newItinerary.days) {
             newItinerary.days = newItinerary.days.map((dayPlan, index) => ({
                 ...dayPlan,
@@ -351,7 +351,7 @@ exports.updateTrip = async (req, res, next) => {
         }
 
         // --- WEATHER INTEGRATION for Update ---
-        const weatherData = await getForecast(trip.destination, trip.startDate, trip.days);
+        const weatherData = await getForecast(trip.destination, trip.startDate, trip.days, trip.destinationCoordinates);
         if (weatherData && aiPlan.days) {
             aiPlan.days = aiPlan.days.map((dayPlan, index) => ({
                 ...dayPlan,

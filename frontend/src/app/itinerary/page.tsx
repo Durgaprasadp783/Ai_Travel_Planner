@@ -322,7 +322,17 @@ export default function ItineraryPage() {
                                                         <div className="text-sm font-medium text-blue-300 bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 w-fit mt-1 ml-6">
                                                             {typeof displayWeather === 'string' ? displayWeather : (
                                                                 <>
-                                                                    <span className="text-lg">{displayWeather.icon?.includes('rain') ? '🌧️' : displayWeather.icon?.includes('cloud') ? '☁️' : '☀️'}</span>
+                                                                    <span className="text-lg">
+                                                                        {displayWeather.icon?.startsWith('01') ? '☀️' : 
+                                                                         displayWeather.icon?.startsWith('02') ? '⛅' : 
+                                                                         displayWeather.icon?.startsWith('03') || displayWeather.icon?.startsWith('04') ? '☁️' : 
+                                                                         displayWeather.icon?.startsWith('09') || displayWeather.icon?.startsWith('10') ? '🌧️' : 
+                                                                         displayWeather.icon?.startsWith('11') ? '⛈️' : 
+                                                                         displayWeather.icon?.startsWith('13') ? '❄️' : 
+                                                                         displayWeather.icon?.startsWith('50') ? '🌫️' : 
+                                                                         displayWeather.icon?.includes('rain') ? '🌧️' : 
+                                                                         displayWeather.icon?.includes('cloud') ? '☁️' : '☀️'}
+                                                                    </span>
                                                                     <span>
                                                                         {displayWeather.date && <span className="font-semibold">{new Date(displayWeather.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: </span>}
                                                                         {displayWeather.avgTemp}°C, {displayWeather.condition}
