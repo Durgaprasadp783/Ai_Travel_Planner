@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Card, Timeline, Tag, Button, Empty, Row, Col, message } from 'antd';
 import { ArrowLeftOutlined, PrinterOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons';
-import { motion } from 'framer-motion';
-import { Share2, Wand2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Share2, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import RouteMap from '@/components/RouteMap';
@@ -12,21 +12,23 @@ const TripMap = dynamic(() => import('@/components/Map'), { ssr: false });
 import { apiRequest } from '@/lib/api';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ItinerarySkeleton from '@/components/ItinerarySkeleton';
-import { Modal, Input, App } from 'antd';
-// Removed jspdf and html2canvas-pro
+import { App } from 'antd';
 import { generatePdfFromData } from '@/utils/generatePdf';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 
 export default function ItineraryPage() {
     const { message, notification } = App.useApp();
     const [trip, setTrip] = useState<any>(null);
     const [downloading, setDownloading] = useState(false);
-    const [regenerating, setRegenerating] = useState(false);
-    const [showAdjustModal, setShowAdjustModal] = useState(false);
     const [showFlightRoute, setShowFlightRoute] = useState(false);
-    const [instruction, setInstruction] = useState('');
+    const [expandedDays, setExpandedDays] = useState<number[]>([0]);
+
+    const toggleDay = (idx: number) => {
+        setExpandedDays(prev =>
+            prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
+        );
+    };
 
     const handleDownloadPDF = async () => {
         if (!trip) return;
@@ -60,44 +62,6 @@ export default function ItineraryPage() {
         }
     };
 
-    const handleRegenerate = async () => {
-        if (!instruction.trim()) {
-            message.warning('Please enter some feedback for the AI.');
-            return;
-        }
-
-        setRegenerating(true);
-        setShowAdjustModal(false);
-
-        try {
-            const response = await apiRequest(`/trips/${trip._id}/regenerate`, {
-                method: 'POST',
-                body: JSON.stringify({ userInstruction: instruction }),
-            });
-
-            if (response.trip) {
-                setTrip(response.trip);
-                localStorage.setItem('lastPlannedTrip', JSON.stringify(response.trip));
-                message.success('Itinerary updated successfully!');
-
-                // Smooth scroll to top of itinerary
-                setTimeout(() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }, 100);
-            }
-        } catch (err: any) {
-            console.error('Regeneration failed:', err);
-            notification.error({
-                message: 'Regeneration Error',
-                description: err.message || 'Failed to redesign journey. Please check your connection.',
-                placement: 'bottomRight'
-            });
-        } finally {
-            setRegenerating(false);
-            setInstruction('');
-        }
-    };
-
     // LOGIC: Read the data we saved on Day 9
     useEffect(() => {
         const savedTrip = localStorage.getItem('lastPlannedTrip');
@@ -106,17 +70,9 @@ export default function ItineraryPage() {
         }
     }, []);
 
-    if (regenerating) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-                <LoadingSkeleton message="Redesigning your journey..." />
-            </div>
-        );
-    }
-
     if (!trip) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] pt-20">
+            <div className="min-h-screen bg-[#0a0a0a] pt-0">
                 <ItinerarySkeleton />
             </div>
         );
@@ -207,25 +163,17 @@ export default function ItineraryPage() {
     } as const;
 
     return (
-        <div className="max-w-[1200px] mx-auto p-4 lg:p-10">
+        <div className="max-w-[1200px] mx-auto px-4 pb-4 pt-0 lg:px-10 lg:pb-10 lg:pt-0">
             <div className="flex justify-between items-center mb-6">
                 <Link href="/plan">
                     <Button icon={<ArrowLeftOutlined />} type="link" className="!h-11 flex items-center">
                         Back to Planner
                     </Button>
                 </Link>
-                <Button
-                    type="primary"
-                    icon={<Wand2 size={18} />}
-                    className="!bg-[#ff4d4f] !border-[#ff4d4f] hover:!bg-[#ff7875] flex items-center gap-2 !h-11 px-6 !rounded-xl"
-                    onClick={() => setShowAdjustModal(true)}
-                >
-                    Adjust Trip
-                </Button>
             </div>
 
             <div id="trip-container">
-            <Row gutter={[24, 24]}>
+            <Row gutter={[24, 24]} id="trip-document" className="pdf-container">
                 {/* LEFT COLUMN: Trip Details & Map */}
                 <Col xs={24} lg={14}>
                     <Card className="glass-effect !bg-black/40 !border-white/10 !rounded-3xl !h-full border border-white/5">
@@ -250,6 +198,20 @@ export default function ItineraryPage() {
                                 Budget: ${trip.budget}
                             </Tag>
                         </div>
+
+                        {/* Choose Interests Section styled for PDF and UI */}
+                        {trip.interests && trip.interests.length > 0 && (
+                            <div className="choose-interests-section mb-6" style={{ fontFamily: 'sans-serif', color: '#ffffff', backgroundColor: '#121212', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <h4 className="interests-title" style={{ fontSize: '16px', fontWeight: 600, marginBottom: '15px', color: '#e0e0e0', marginTop: 0 }}>Choose Interests</h4>
+                                <div className="interests-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                    {trip.interests.map((interest: string, index: number) => (
+                                        <span key={index} className="interest-pill" style={{ padding: '8px 20px', fontSize: '14px', color: '#b3b3b3', backgroundColor: 'transparent', border: '1px solid #404040', borderRadius: '20px', display: 'inline-block' }}>
+                                            {interest}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* RENDER THE MAP HERE - Top on Mobile - Ignored by HTML2Canvas */}
                         <div data-html2canvas-ignore="true" className="w-full flex justify-end mb-2">
@@ -321,82 +283,112 @@ export default function ItineraryPage() {
                             variants={containerVariants}
                             initial="hidden"
                             animate="visible"
+                            className="w-full flex flex-col items-start px-2"
                         >
                             <Timeline
-                                mode="left"
-                                items={daysList.map((day: any, i: number) => ({
-                                    label: <span className="text-gray-400 font-medium whitespace-nowrap">Day {day.day || (i + 1)}</span>,
-                                    children: (
-                                        <motion.div variants={itemVariants} className="text-white pb-6">
-                                            <div className="flex flex-col items-start w-full gap-2 mb-3">
-                                                <div className="w-full flex justify-between items-center">
-                                                    <div className="font-bold text-base text-[#ff4d4f] leading-snug">
-                                                        {day.title}
+                                style={{ width: '100%' }}
+                                items={daysList.map((day: any, i: number) => {
+                                    const hasOwnWeather = day.weather && day.weather !== "No forecast available";
+                                    const rootWeather = daysList[0]?.weather && daysList[0].weather !== "No forecast available" ? daysList[0].weather : null;
+
+                                    let displayWeather: any = null;
+                                    if (hasOwnWeather) {
+                                        displayWeather = day.weather;
+                                    } else if (rootWeather && typeof rootWeather !== 'string') {
+                                        const originalDate = new Date(rootWeather.date || trip.startDate || Date.now());
+                                        const derivedDate = new Date(originalDate.getTime() + i * 86400000);
+                                        displayWeather = { ...rootWeather, date: derivedDate.toISOString() };
+                                    }
+
+                                    return {
+                                        children: (
+                                            <motion.div variants={itemVariants} className="text-white pb-6 w-full text-left">
+                                                <div
+                                                    className="flex flex-col items-start w-full gap-2 mb-3 text-left cursor-pointer group rounded-xl p-2 -ml-2 hover:bg-white/5 transition-colors"
+                                                    onClick={() => toggleDay(i)}
+                                                >
+                                                    <div className="w-full flex flex-col sm:flex-row sm:justify-between items-start sm:items-center">
+                                                        <div className="font-bold text-base text-[#ff4d4f] leading-snug text-left mb-2 sm:mb-0 flex items-center gap-2 group-hover:text-[#ff7875] transition-colors">
+                                                            {expandedDays.includes(i) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                            Day {day.day || (i + 1)}: {day.title}
+                                                        </div>
+                                                        {day.dailyBudgetAllocated && (
+                                                            <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider ml-0 sm:ml-4">
+                                                                Daily Budget: ${day.dailyBudgetAllocated}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {day.dailyBudgetAllocated && (
-                                                        <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider ml-4">
-                                                            Daily Budget: ${day.dailyBudgetAllocated}
+                                                    {displayWeather && (
+                                                        <div className="text-sm font-medium text-blue-300 bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 w-fit mt-1 ml-6">
+                                                            {typeof displayWeather === 'string' ? displayWeather : (
+                                                                <>
+                                                                    <span className="text-lg">{displayWeather.icon?.includes('rain') ? '🌧️' : displayWeather.icon?.includes('cloud') ? '☁️' : '☀️'}</span>
+                                                                    <span>
+                                                                        {displayWeather.date && <span className="font-semibold">{new Date(displayWeather.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: </span>}
+                                                                        {displayWeather.avgTemp}°C, {displayWeather.condition}
+                                                                    </span>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
-                                                {day.weather && day.weather !== "No forecast available" && (
-                                                    <div className="text-sm font-medium text-blue-300 bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 w-fit">
-                                                        {typeof day.weather === 'string' ? day.weather : (
-                                                            <>
-                                                                <span className="text-lg">{day.weather.icon?.includes('rain') ? '🌧️' : day.weather.icon?.includes('cloud') ? '☁️' : '☀️'}</span>
-                                                                <span>
-                                                                    {day.weather.date && <span className="font-semibold">{new Date(day.weather.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: </span>}
-                                                                    {day.weather.avgTemp}°C, {day.weather.condition}
-                                                                </span>
-                                                            </>
-                                                        )}
+                                                {day.flight && (
+                                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 shadow-sm mb-3">
+                                                        <p className="text-white font-bold mb-1">✈️ Airline: {day.flight.airline} {day.flight.flight ? `(${day.flight.flight})` : ''}</p>
+                                                        <p className="text-gray-300 text-sm">Route: {day.flight.from || trip.origin} → {day.flight.to || cityForMap}</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Time: {day.flight.departure} → {day.flight.arrival}</p>
                                                     </div>
                                                 )}
-                                            </div>
-                                            {day.flight && (
-                                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 shadow-sm mb-3">
-                                                    <p className="text-white font-bold mb-1">✈️ Airline: {day.flight.airline} {day.flight.flight ? `(${day.flight.flight})` : ''}</p>
-                                                    <p className="text-gray-300 text-sm">Route: {day.flight.from || trip.origin} → {day.flight.to || cityForMap}</p>
-                                                    <p className="text-gray-400 text-xs mt-1">Time: {day.flight.departure} → {day.flight.arrival}</p>
-                                                </div>
-                                            )}
-                                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm">
-                                                <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
-                                                    {(day.places || day.activities || day.plan || [])?.map((place: any, idx: number) => {
-                                                        let icon = "📍";
-                                                        if (idx === 0) icon = "☀️";
-                                                        else if (idx === 1) icon = "🏙️";
-                                                        else if (idx === 2) icon = "🌙";
+                                                <AnimatePresence>
+                                                    {expandedDays.includes(i) && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            transition={{ duration: 0.3 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-sm w-full ml-6">
+                                                                <ul className="pl-2 space-y-4 text-sm text-gray-300 list-none">
+                                                                    {(day.places || day.activities || day.plan || [])?.map((place: any, idx: number) => {
+                                                                        let icon = "📍";
+                                                                        if (idx === 0) icon = "☀️";
+                                                                        else if (idx === 1) icon = "🏙️";
+                                                                        else if (idx === 2) icon = "🌙";
 
-                                                        return (
-                                                            <li key={idx} className="flex flex-col gap-1 leading-relaxed">
-                                                                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-500">
-                                                                    <span>{icon}</span>
-                                                                    <span>{place.time || `Stop ${idx + 1}`}</span>
-                                                                </div>
-                                                                <div className="pl-6 flex flex-col">
-                                                                    <div className="flex justify-between items-start">
-                                                                        <div className="text-white text-[15px] font-semibold">
-                                                                            {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
-                                                                        </div>
-                                                                        {place.estimatedCost !== undefined && (
-                                                                            <div className="text-green-400 font-mono text-xs">
-                                                                                ${place.estimatedCost}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-gray-400 text-sm mt-0.5">
-                                                                        {place.location || place.address || place.description || 'No description available.'}
-                                                                    </div>
-                                                                </div>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            </div>
-                                        </motion.div>
-                                    )
-                                })) || [
+                                                                        return (
+                                                                            <li key={idx} className="flex flex-col gap-1 leading-relaxed items-start text-left w-full">
+                                                                                <div className="flex gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-500 items-start w-full">
+                                                                                    <span>{icon}</span>
+                                                                                    <span>{place.time || `Stop ${idx + 1}`}</span>
+                                                                                </div>
+                                                                                <div className="pl-6 flex flex-col items-start text-left w-full">
+                                                                                    <div className="flex justify-between items-start w-full">
+                                                                                        <div className="text-white text-[15px] font-semibold">
+                                                                                            {place.name || (typeof place === 'string' ? place : 'Unknown Place')}
+                                                                                        </div>
+                                                                                        {place.estimatedCost !== undefined && (
+                                                                                            <div className="text-green-400 font-mono text-xs">
+                                                                                                ${place.estimatedCost}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="text-left text-sm text-gray-400 mt-0.5 w-full">
+                                                                                        {place.location || place.address || place.description || 'No description available.'}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+                                                                        );
+                                                                    })}
+                                                                </ul>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </motion.div>
+                                        )
+                                    };
+                                }) || [
                                         {
                                             label: <span className="text-gray-400">Error</span>,
                                             children: (
@@ -413,29 +405,7 @@ export default function ItineraryPage() {
             </Row>
             </div>
 
-            <Modal
-                title="Adjust Your Trip"
-                open={showAdjustModal}
-                onOk={handleRegenerate}
-                onCancel={() => setShowAdjustModal(false)}
-                okText="Confirm Changes"
-                cancelText="Keep Current"
-                okButtonProps={{
-                    className: "!bg-[#ff4d4f] !border-[#ff4d4f] hover:!bg-[#ff7875]",
-                }}
-                className="luxury-modal"
-            >
-                <div className="py-4">
-                    <Text className="text-gray-400 mb-2 block">What would you like to change? (e.g., "Add more outdoor activities", "Focus on fine dining")</Text>
-                    <TextArea
-                        rows={4}
-                        placeholder="Tell the AI what to adjust..."
-                        value={instruction}
-                        onChange={(e) => setInstruction(e.target.value)}
-                        className="!bg-black/20 !border-white/10 !text-white hover:!border-[#ff4d4f] focus:!border-[#ff4d4f]"
-                    />
-                </div>
-            </Modal>
+
         </div>
     );
 }

@@ -27,8 +27,7 @@ const tripSchema = Joi.object({
 
     interests: Joi.array()
         .items(Joi.string())
-        .min(1)
-        .required(),
+        .optional(),
 
     startDate: Joi.date()
         .required(),

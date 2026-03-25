@@ -67,7 +67,7 @@ export default function ProfilePage() {
 
     return (
         <ProtectedRoute>
-            <div className="bg-darkBg min-h-screen flex items-center justify-center p-4">
+            <div className="bg-darkBg min-h-screen flex items-center justify-center px-4 pb-4 pt-0">
                 <div className="glass-effect p-8 rounded-2xl w-full max-w-md flex flex-col items-center">
 
                     {/* Main Avatar Preview */}

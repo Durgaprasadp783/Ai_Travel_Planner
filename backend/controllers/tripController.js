@@ -94,7 +94,8 @@ exports.generateTrip = async (req, res, next) => {
             budgetTier: budgetAllocation.tier,
             itinerary: aiPlan,
             mode,
-            peopleCount
+            peopleCount,
+            interests: interests || []
         });
 
         // --- H. CLEAR CACHE ---
@@ -129,7 +130,7 @@ exports.getAllTrips = async (req, res, next) => {
         const skip = (page - 1) * limit;
 
         const trips = await Trip.find({ userId: req.user.userId })
-            .select("destination origin originCoordinates destinationCoordinates startDate endDate days budget createdAt itinerary mode peopleCount")
+            .select("destination origin originCoordinates destinationCoordinates startDate endDate days budget createdAt itinerary mode peopleCount interests")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -304,6 +305,7 @@ exports.updateTrip = async (req, res, next) => {
         if (endDate) trip.endDate = endDate;
         if (mode) trip.mode = mode;
         if (peopleCount) trip.peopleCount = peopleCount;
+        if (interests) trip.interests = interests;
 
         // Recalculate days if dates were updated
         if (startDate || endDate) {

@@ -73,7 +73,7 @@ export default function SharedItineraryPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] pt-20">
+            <div className="min-h-screen bg-[#0a0a0a] pt-0">
                 <ItinerarySkeleton />
             </div>
         );
@@ -99,7 +99,7 @@ export default function SharedItineraryPage() {
     const cityForMap = trip.destination ? trip.destination.split(',')[0] : 'Destination';
 
     return (
-        <div className="max-w-[1200px] mx-auto p-4 lg:p-10 pb-32">
+        <div className="max-w-[1200px] mx-auto px-4 pb-4 pt-0 lg:px-10 lg:pb-10 lg:pt-0 pb-32">
             {/* Header CTA */}
             <div className="glass-effect rounded-2xl p-4 mb-8 flex flex-col sm:flex-row justify-between items-center bg-white/5 border border-white/10 gap-4">
                 <div className="flex items-center gap-3">

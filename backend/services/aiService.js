@@ -11,13 +11,15 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * Merges budget constraints with dynamic persona-based prompting.
  */
 exports.getAIPlan = async (tripData) => {
+    const { destination, days, budget, mode, interests, peopleCount } = tripData;
     try {
-        const { destination, days, budget, mode, interests, peopleCount } = tripData;
         const totalBudget = budget;
         const dailyBudget = Math.floor(budget / days);
 
         // Get optimized budget info
         const budgetInfo = calculateAllocation(totalBudget, days, mode);
+
+        const interestString = interests && interests.length > 0 ? interests.join(', ') : 'General sightseeing';
 
         const prompt = `
             You are an expert travel planner. You MUST output ONLY valid JSON.
@@ -29,7 +31,12 @@ exports.getAIPlan = async (tripData) => {
             - Daily Budget: $${dailyBudget}
             - Mode: ${mode}
             - Group Size: ${peopleCount}
-            - Interests: ${interests ? interests.join(', ') : 'General'}
+            
+            CRITICAL PERSONALIZATION:
+            - Travel Personality: ${mode}
+            - User Interests: ${interestString}
+            
+            You MUST tailor every activity, restaurant, and suggestion to fit a "${mode}" and specifically focus on "${interestString}".
 
             STRICT BUDGET CONSTRAINTS (Values in USD):
             - Travel Tier: ${budgetInfo.tier}
@@ -80,9 +87,11 @@ exports.getAIPlan = async (tripData) => {
             travelMode: mode
         };
     } catch (error) {
-        console.error("AI GENERATION FAILED:", error.message);
-        // Fallback to high-quality Mock data so the app remains usable
-        return getMockData(tripData.destination, tripData.days, tripData.budget, tripData.mode);
+        console.error("AI SERVICE ERROR:", error.message);
+        console.log("🔄 QUOTA/ERROR DETECTED -> SWITCHING TO MOCK DATA FALLBACK...");
+        
+        // Ensure the app never crashes due to AI limits
+        return getMockData(destination, days, budget, mode);
     }
 };
 
@@ -164,10 +173,10 @@ function getMockData(destination, days, budget, mode) {
 
     return {
         destination: destination || "Selected City",
-        overview: "A sample itinerary (Generated as fallback due to API limits).",
+        overview: "A premium sample itinerary (Displayed as a fallback due to AI API rate limits).",
         dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
             day: i + 1,
-            title: `Day ${i + 1}: Exploring ${destination || 'the city'}`,
+            title: `Day ${i + 1}: Immersive Discovery`,
             dailyBudgetAllocated: dailyBudget,
             activities: mockActivities
         })),

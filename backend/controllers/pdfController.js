@@ -18,9 +18,19 @@ exports.downloadTripPDF = async (req, res) => {
         // --- PDF Header ---
         doc.fontSize(22).fillColor('#2c3e50').text(`Trip to ${trip.destination}`, { align: 'center' });
         doc.moveDown(0.5);
-        doc.fontSize(12).fillColor('#7f8c8d').text(`Mode: ${trip.mode || 'Standard'} | Group: ${trip.peopleCount || 1} | Interests: ${trip.interests?.join(', ') || 'General'}`, { align: 'center' });
-        doc.fontSize(12).fillColor('#27ae60').text(`Total Budget: $${trip.budget}`, { align: 'center' });
-        doc.moveDown(2);
+        // 1. Format the Mode and Interests safely
+        const safeMode = trip.mode || 'Standard';
+        
+        // Check if interests exist in the DB and join them with a comma
+        const safeInterests = trip.interests && trip.interests.length > 0 
+            ? trip.interests.join(', ') 
+            : 'General Exploration';
+
+        // 2. Print them to the PDF with updated styling
+        doc.fontSize(12).fillColor('#7f8c8d').text(`Travel Personality: ${safeMode}`, { align: 'center' });
+        doc.fontSize(12).fillColor('#d35400').text(`Specified Interests: ${safeInterests}`, { align: 'center' }); 
+        doc.fontSize(12).fillColor('#27ae60').text(`Trip Budget: $${trip.budget}`, { align: 'center' });
+        doc.moveDown(1.5);
 
         // --- Daily Schedule ---
         if (trip.itinerary && trip.itinerary.dailyPlan) {
