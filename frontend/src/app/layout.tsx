@@ -24,6 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 colorTextDescription: '#a1a1aa',
                 borderRadius: 8,
               },
+              hashed: false,
+              // 1. ADDED THIS EXACT LINE: Forces Ant Design to use a static CSS prefix
+              cssVar: { key: 'app' }
             }}
           >
             <App>

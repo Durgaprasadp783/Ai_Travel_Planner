@@ -34,7 +34,7 @@ const LoginPage = () => {
             login(data.token); // Use AuthContext login
 
             message.success("Login successful!");
-            router.push("/dashboard");
+            router.push("/");
         } catch (err: any) {
             message.error(err.message);
         } finally {

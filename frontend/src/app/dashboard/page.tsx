@@ -44,6 +44,9 @@ const TripCard = ({ trip, handleDelete }: { trip: any, handleDelete: (id: string
         fetchImage();
     }, [trip.destination]);
 
+    const rawDate = typeof trip.destination === 'object' && trip.destination.startDate ? trip.destination.startDate : trip.startDate;
+    const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Any time';
+
     return (
         <motion.div
             whileHover={{ scale: 1.03, y: -5 }}
@@ -70,7 +73,7 @@ const TripCard = ({ trip, handleDelete }: { trip: any, handleDelete: (id: string
                     <div className="space-y-3 mb-6 flex-grow">
                         <div className="flex items-center text-gray-300">
                             <CalendarOutlined className="mr-2 text-[#ff4d4f]" />
-                            <span>{trip.days} Days • {typeof trip.destination === 'object' && trip.destination.startDate ? trip.destination.startDate : trip.startDate || 'Any time'}</span>
+                            <span>{trip.days} Days • {formattedDate}</span>
                         </div>
                         <div className="flex items-center text-gray-300">
                             <WalletOutlined className="mr-2 text-green-400" />

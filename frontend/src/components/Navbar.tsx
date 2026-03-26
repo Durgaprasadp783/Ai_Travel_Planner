@@ -28,13 +28,13 @@ const Navbar = () => {
 
     const navLinkClasses = (href: string) => `
         relative text-lg font-medium transition-colors duration-300
-        ${pathname === href ? 'text-[#ff4d4f]' : 'text-gray-200 hover:text-white'}
+        ${pathname === href ? 'text-[#ff4d4f]' : 'text-[#1BB4E3] hover:text-white'}
     `;
 
     return (
         <header className="sticky top-0 w-full flex justify-between items-center px-8 py-4 z-50 bg-black/20 backdrop-blur-xl border-b border-white/10">
             {/* Left side: Logo */}
-            <Link href="/" className="logo text-white font-bold text-2xl tracking-tight hover:opacity-80 transition-opacity">
+            <Link href="/" className="logo text-[#1BB4E3] font-bold text-2xl tracking-tight hover:opacity-80 transition-opacity">
                 AI TRAVEL PLANNER
             </Link>
 
@@ -55,7 +55,7 @@ const Navbar = () => {
                         ))}
                         <button
                             onClick={logout}
-                            className="border border-white/20 hover:bg-white/10 text-white text-sm font-medium px-5 py-2 rounded-full transition-all flex items-center gap-2"
+                            className="border border-[#1BB4E3]/30 hover:bg-[#1BB4E3]/10 text-[#1BB4E3] hover:text-white text-sm font-medium px-5 py-2 rounded-full transition-all flex items-center gap-2"
                         >
                             <LogOut size={16} />
                             Logout
@@ -63,7 +63,7 @@ const Navbar = () => {
                     </>
                 ) : (
                     <>
-                        <Link href="/login" className="text-gray-200 hover:text-white text-lg font-medium transition-colors">
+                        <Link href="/login" className="text-[#1BB4E3] hover:text-white text-lg font-medium transition-colors">
                             Login
                         </Link>
                         <Link href="/register" className="bg-[#ff4d4f] text-white px-5 py-2 rounded-full text-lg font-medium hover:opacity-90 transition-opacity">
@@ -75,7 +75,7 @@ const Navbar = () => {
 
             {/* Mobile Hamburger Menu Toggle */}
             <button
-                className="md:hidden text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="md:hidden text-[#1BB4E3] p-2 hover:bg-white/10 rounded-lg transition-colors"
                 onClick={toggleMenu}
                 aria-label="Toggle Menu"
             >
@@ -101,8 +101,8 @@ const Navbar = () => {
                             className="fixed top-0 right-0 h-full w-[280px] bg-[#0a0a0a] border-l border-white/10 z-50 md:hidden p-8 flex flex-col"
                         >
                             <div className="flex justify-between items-center mb-10 pb-4 border-b border-white/10">
-                                <span className="text-xl font-bold text-white">Menu</span>
-                                <button onClick={toggleMenu} className="text-white hover:text-[#ff4d4f] transition-colors">
+                                <span className="text-xl font-bold text-[#1BB4E3]">Menu</span>
+                                <button onClick={toggleMenu} className="text-[#1BB4E3] hover:text-[#ff4d4f] transition-colors">
                                     <X size={24} />
                                 </button>
                             </div>
@@ -115,7 +115,7 @@ const Navbar = () => {
                                                 key={item.href}
                                                 href={item.href}
                                                 onClick={toggleMenu}
-                                                className={`flex items-center gap-4 text-lg font-medium transition-colors ${pathname === item.href ? 'text-[#ff4d4f]' : 'text-gray-200 hover:text-white'}`}
+                                                className={`flex items-center gap-4 text-lg font-medium transition-colors ${pathname === item.href ? 'text-[#ff4d4f]' : 'text-[#1BB4E3] hover:text-white'}`}
                                             >
                                                 {item.icon}
                                                 {item.label}
@@ -127,7 +127,7 @@ const Navbar = () => {
                                         <Link
                                             href="/login"
                                             onClick={toggleMenu}
-                                            className="flex items-center gap-4 text-lg font-medium text-gray-200 hover:text-white transition-colors"
+                                            className="flex items-center gap-4 text-lg font-medium text-[#1BB4E3] hover:text-white transition-colors"
                                         >
                                             <User size={20} />
                                             Login
