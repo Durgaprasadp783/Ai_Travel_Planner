@@ -7,6 +7,9 @@ const { redisClient, isRedisReady } = require("../config/redisClient");
 const { optimizeDailyRoute } = require("../utils/routeOptimizer");
 const { sanitizeItinerary } = require("../utils/activityFilter");
 const { attachExactLocations } = require("../utils/locationService");
+const User = require("../models/User");
+const { sendTripEmail } = require("../services/emailService");
+const { getPDFBuffer } = require("./pdfController");
 
 /**
  * 1. CREATE AI-GENERATED TRIP 
@@ -15,7 +18,7 @@ const { attachExactLocations } = require("../utils/locationService");
  */
 exports.generateTrip = async (req, res, next) => {
     try {
-        let { origin, destination, originCoordinates, destinationCoordinates, startDate, endDate, days, budget, interests, mode, peopleCount, smartPrompt } = req.body;
+        let { origin, destination, originCoordinates, destinationCoordinates, startDate, endDate, days, budget, interests, mode, peopleCount, smartPrompt, currency } = req.body;
 
         // Ensure origin and destination are strings for the AI prompt
         origin = typeof origin === 'object' && origin !== null ? (origin.name || origin.address || '') : origin;
@@ -52,7 +55,8 @@ exports.generateTrip = async (req, res, next) => {
             totalBudget: budget,
             mode: mode,
             peopleCount,
-            smartPrompt
+            smartPrompt,
+            currency
         });
 
         // --- D. PERSONALITY FILTER (Sanitization) ---
@@ -95,7 +99,8 @@ exports.generateTrip = async (req, res, next) => {
             itinerary: aiPlan,
             mode,
             peopleCount,
-            interests: interests || []
+            interests: interests || [],
+            currency: currency || 'USD'
         });
 
         // --- H. CLEAR CACHE ---
@@ -103,6 +108,18 @@ exports.generateTrip = async (req, res, next) => {
             const cacheKey = `trips_user_${req.user.userId}_page_1`;
             await redisClient.del(cacheKey);
             console.log("🧹 Redis cache cleared for user's trip list");
+        }
+
+        // --- I. SEND EMAIL AUTOMATICALLY ---
+        try {
+            const user = await User.findById(req.user.userId);
+            if (user && user.email) {
+                console.log(`📧 Generating PDF and sending email to ${user.email}...`);
+                const pdfBuffer = await getPDFBuffer(trip);
+                await sendTripEmail(user.email, trip, pdfBuffer);
+            }
+        } catch (emailErr) {
+            console.error("Failed to send auto-email:", emailErr.message);
         }
 
         res.status(201).json(trip);
@@ -257,7 +274,7 @@ exports.deleteTrip = async (req, res, next) => {
  */
 exports.createTripManual = async (req, res, next) => {
     try {
-        const { destination, originCoordinates, destinationCoordinates, days, budget, itinerary, mode, peopleCount, origin, startDate, endDate } = req.body;
+        const { destination, originCoordinates, destinationCoordinates, days, budget, itinerary, mode, peopleCount, origin, startDate, endDate, currency } = req.body;
 
         const trip = await Trip.create({
             userId: req.user.userId,
@@ -271,7 +288,8 @@ exports.createTripManual = async (req, res, next) => {
             budget,
             itinerary,
             mode,
-            peopleCount
+            peopleCount,
+            currency: currency || 'USD'
         });
 
         if (isRedisReady()) {
@@ -291,7 +309,7 @@ exports.createTripManual = async (req, res, next) => {
 exports.updateTrip = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { destination, originCoordinates, destinationCoordinates, budget, startDate, endDate, mode, peopleCount, interests } = req.body;
+        const { destination, originCoordinates, destinationCoordinates, budget, startDate, endDate, mode, peopleCount, interests, currency } = req.body;
 
         const trip = await Trip.findById(id);
         if (!trip) return res.status(404).json({ message: "Trip not found" });
@@ -306,6 +324,7 @@ exports.updateTrip = async (req, res, next) => {
         if (mode) trip.mode = mode;
         if (peopleCount) trip.peopleCount = peopleCount;
         if (interests) trip.interests = interests;
+        if (currency) trip.currency = currency;
 
         // Recalculate days if dates were updated
         if (startDate || endDate) {
@@ -326,7 +345,8 @@ exports.updateTrip = async (req, res, next) => {
             interests: interests || [],
             totalBudget: trip.budget,
             mode: trip.mode,
-            peopleCount: trip.peopleCount
+            peopleCount: trip.peopleCount,
+            currency: trip.currency
         });
 
         aiPlan = sanitizeItinerary(aiPlan, trip.mode);

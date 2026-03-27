@@ -77,7 +77,7 @@ const TripCard = ({ trip, handleDelete }: { trip: any, handleDelete: (id: string
                         </div>
                         <div className="flex items-center text-gray-300">
                             <WalletOutlined className="mr-2 text-green-400" />
-                            <span>Budget: ${trip.budget}</span>
+                            <span>Budget: {trip.currency || 'USD'} {trip.budget}</span>
                         </div>
                         <div className="flex items-center text-gray-400 text-xs gap-3 flex-wrap">
                             <span className="bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase tracking-tighter">{trip.mode || 'solo'}</span>

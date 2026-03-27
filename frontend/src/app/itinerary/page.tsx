@@ -195,7 +195,7 @@ export default function ItineraryPage() {
                                 {trip.peopleCount || 1} Traveler(s)
                             </Tag>
                             <Tag color="green" className="!bg-green-500/10 !border-green-500/20 !text-green-400 !px-3 !py-1.5 !text-sm !rounded-lg m-0">
-                                Budget: ${trip.budget}
+                                Budget: {trip.currency || 'USD'} {trip.budget}
                             </Tag>
                         </div>
 
@@ -314,7 +314,7 @@ export default function ItineraryPage() {
                                                         </div>
                                                         {day.dailyBudgetAllocated && (
                                                             <div className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[10px] text-green-400 font-bold uppercase tracking-wider ml-0 sm:ml-4">
-                                                                Daily Budget: ${day.dailyBudgetAllocated}
+                                                                Daily Budget: {trip.currency || 'USD'} {day.dailyBudgetAllocated}
                                                             </div>
                                                         )}
                                                     </div>
@@ -379,7 +379,7 @@ export default function ItineraryPage() {
                                                                                         </div>
                                                                                         {place.estimatedCost !== undefined && (
                                                                                             <div className="text-green-400 font-mono text-xs">
-                                                                                                ${place.estimatedCost}
+                                                                                                {trip.currency || 'USD'} {place.estimatedCost}
                                                                                             </div>
                                                                                         )}
                                                                                     </div>

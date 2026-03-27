@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * Merges budget constraints with dynamic persona-based prompting.
  */
 exports.getAIPlan = async (tripData) => {
-    const { destination, days, budget, mode, interests, peopleCount } = tripData;
+    const { destination, days, budget, mode, interests, peopleCount, currency = 'USD' } = tripData;
     try {
         const totalBudget = budget;
         const dailyBudget = Math.floor(budget / days);
@@ -27,10 +27,11 @@ exports.getAIPlan = async (tripData) => {
             Trip Details:
             - Destination: ${destination}
             - Duration: ${days} days
-            - Total Budget: $${totalBudget}
-            - Daily Budget: $${dailyBudget}
+            - Total Budget: ${currency} ${totalBudget}
+            - Daily Budget: ${currency} ${dailyBudget}
             - Mode: ${mode}
             - Group Size: ${peopleCount}
+            - Currency: ${currency}
             
             CRITICAL PERSONALIZATION:
             - Travel Personality: ${mode}
@@ -38,17 +39,17 @@ exports.getAIPlan = async (tripData) => {
             
             You MUST tailor every activity, restaurant, and suggestion to fit a "${mode}" and specifically focus on "${interestString}".
 
-            STRICT BUDGET CONSTRAINTS (Values in USD):
+            STRICT BUDGET CONSTRAINTS (Values in ${currency}):
             - Travel Tier: ${budgetInfo.tier}
-            - Max Nightly Hotel Cost: $${budgetInfo.breakdown.avgNightlyRate}
-            - Max Daily Food Spend: $${budgetInfo.breakdown.dailyFood}
-            - Max Daily Activity Spend: $${budgetInfo.breakdown.dailyActivities}
+            - Max Nightly Hotel Cost: ${currency} ${budgetInfo.breakdown.avgNightlyRate}
+            - Max Daily Food Spend: ${currency} ${budgetInfo.breakdown.dailyFood}
+            - Max Daily Activity Spend: ${currency} ${budgetInfo.breakdown.dailyActivities}
 
             CRITICAL RULES:
             1. No markdown, no conversational text.
             2. Every day MUST include Morning Activity, Lunch, Afternoon Activity, Dinner, and Evening Activity.
             3. Provide realistic "estimatedCost" for each item. 
-            4. The total cost of activities for a single day MUST NOT exceed $${dailyBudget}.
+            4. The total cost of activities for a single day MUST NOT exceed ${currency} ${dailyBudget}.
             5. EVERY activity MUST be an actual, real-world, famous place strictly located WITHIN the destination city (${destination}). Do not provide generic names, use the actual specific name and include a precise "location".
 
             REQUIRED JSON FORMAT:
@@ -99,11 +100,11 @@ exports.getAIPlan = async (tripData) => {
  * Regenerates an existing itinerary based on user instructions.
  */
 exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
-    const { destination, days, budget, itinerary, mode } = existingTrip;
+    const { destination, days, budget, itinerary, mode, currency = 'USD' } = existingTrip;
 
     try {
         const prompt = `
-            Current Itinerary for a ${days}-day ${mode || 'solo'} trip to ${destination} ($${budget}):
+            Current Itinerary for a ${days}-day ${mode || 'solo'} trip to ${destination} (${currency} ${budget}):
             ${JSON.stringify(itinerary, null, 2)}
 
             USER REQUEST: "${userInstruction}"

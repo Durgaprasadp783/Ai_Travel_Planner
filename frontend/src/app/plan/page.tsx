@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Form, DatePicker, InputNumber, Button, Card, Typography, Row, Col, message, Input } from 'antd';
+import { Form, DatePicker, InputNumber, Button, Card, Typography, Row, Col, message, Input, Select } from 'antd';
 import { CompassOutlined, SendOutlined } from '@ant-design/icons';
 import { PlaneTakeoff, MapPin, User, Heart, Users, Home, Briefcase, Sparkles } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -27,6 +27,7 @@ function PlanTripContent() {
     const [peopleCount, setPeopleCount] = useState(1);
     const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
     const [smartPrompt, setSmartPrompt] = useState("");
+    const [currency, setCurrency] = useState('USD');
 
     // --- Mode-Specific Limits ---
     const limits: Record<string, number> = {
@@ -96,6 +97,7 @@ function PlanTripContent() {
             endDate: values.dates[1].format('YYYY-MM-DD'),
             mode: travelMode,
             peopleCount: peopleCount,
+            currency: currency,
             interests: selectedInterests,
             smartPrompt: smartPrompt,
         };
@@ -186,18 +188,38 @@ function PlanTripContent() {
                                 </Col>
 
                                 <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Budget (USD)"
-                                        name="budget"
-                                        rules={[{ required: true, message: 'What is your budget?' }]}
-                                    >
-                                        <InputNumber
-                                            prefix={<span className="text-gray-400">$</span>}
-                                            style={{ width: '100%' }}
-                                            placeholder="5000"
-                                            className="!bg-white/5 !border-white/10 !text-white !h-12 flex items-center !rounded-xl"
-                                        />
-                                    </Form.Item>
+                                    <div className="flex gap-4">
+                                        <Form.Item
+                                            label="Currency"
+                                            className="w-1/3"
+                                        >
+                                            <Select
+                                                value={currency}
+                                                onChange={(val) => setCurrency(val)}
+                                                className="luxury-select !h-12 !rounded-xl"
+                                                dropdownClassName="luxury-dropdown"
+                                                options={[
+                                                    { value: 'USD', label: 'USD ($)' },
+                                                    { value: 'INR', label: 'INR (₹)' },
+                                                    { value: 'EUR', label: 'EUR (€)' },
+                                                    { value: 'GBP', label: 'GBP (£)' },
+                                                ]}
+                                            />
+                                        </Form.Item>
+                                        <Form.Item
+                                            label={`Budget (${currency})`}
+                                            name="budget"
+                                            rules={[{ required: true, message: 'What is your budget?' }]}
+                                            className="flex-1"
+                                        >
+                                            <InputNumber
+                                                prefix={<span className="text-gray-400">{currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : '£'}</span>}
+                                                style={{ width: '100%' }}
+                                                placeholder="5000"
+                                                className="!bg-white/5 !border-white/10 !text-white !h-12 flex items-center !rounded-xl"
+                                            />
+                                        </Form.Item>
+                                    </div>
                                 </Col>
 
                                 <Col xs={24} md={12}>
@@ -242,7 +264,13 @@ function PlanTripContent() {
                                                 onClick={() => {
                                                     setTravelMode(mode.id);
                                                     const newMax = limits[mode.id] || 1;
-                                                    if (peopleCount > newMax) {
+                                                    
+                                                    // Dynamic Guest Count Logic
+                                                    if (mode.id === 'solo') {
+                                                        setPeopleCount(1);
+                                                    } else if (mode.id === 'couples') {
+                                                        setPeopleCount(2);
+                                                    } else if (peopleCount > newMax) {
                                                         setPeopleCount(newMax);
                                                     }
                                                 }}
