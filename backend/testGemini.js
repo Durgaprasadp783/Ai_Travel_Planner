@@ -7,7 +7,7 @@ async function testGemini() {
     const input = {
         destination: "Paris",
         days: 3,
-        budget: "Medium",
+        budget: 1200,
         interests: ["Food", "Museums"]
     };
 

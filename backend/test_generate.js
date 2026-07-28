@@ -3,14 +3,14 @@ const axios = require('axios');
 async function test() {
     try {
         console.log("1. Registering user...");
-        await axios.post('http://localhost:5000/api/auth/register', {
+        await axios.post('http://127.0.0.1:5000/api/auth/register', {
             name: "Test User",
             email: "test_verified@example.com",
             password: "password123"
         }).catch(err => console.log("User might already exist"));
 
         console.log("2. Logging in...");
-        const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+        const loginRes = await axios.post('http://127.0.0.1:5000/api/auth/login', {
             email: "test_verified@example.com",
             password: "password123"
         });
@@ -18,7 +18,7 @@ async function test() {
         console.log("Token acquired.");
 
         console.log("3. Generating trip...");
-        const tripRes = await axios.post('http://localhost:5000/api/trips/generate', {
+        const tripRes = await axios.post('http://127.0.0.1:5000/api/trips/generate', {
             origin: "London",
             destination: "Paris",
             startDate: "2026-03-10",

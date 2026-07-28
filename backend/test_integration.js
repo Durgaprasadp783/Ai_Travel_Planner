@@ -1,15 +1,16 @@
 require("dotenv").config();
+const fs = require('fs');
 const { getAIPlan } = require("./services/aiService");
 
 const testTrip = {
     destination: "Tokyo",
     days: 3,
-    budget: "High",
+    budget: 1500,
     interests: ["Anime", "Technology", "Sushi"]
 };
 
 async function runTest() {
-    console.log("Starting integration test with gemini-2.5-flash...");
+    console.log("Starting integration test with gemini-flash-latest...");
     try {
         const plan = await getAIPlan(testTrip);
         console.log("Successfully generated plan!");
@@ -21,8 +22,6 @@ async function runTest() {
             console.log(JSON.stringify(plan, null, 2));
             process.exit(1);
         }
-        const fs = require('fs');
-
     } catch (error) {
         console.error("Integration Test Failed:", error.message);
         fs.writeFileSync('test_error.log', `Error: ${error.message}\nStack: ${error.stack}`);
@@ -31,3 +30,4 @@ async function runTest() {
 }
 
 runTest();
+

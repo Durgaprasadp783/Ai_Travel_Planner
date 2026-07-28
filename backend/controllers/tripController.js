@@ -36,10 +36,11 @@ exports.generateTrip = async (req, res, next) => {
 
         // --- B. BUDGET SURVIVABILITY CHECK ---
         const minDailyBudget = 30;
-        if (budget / days < minDailyBudget) {
+        const numericBudget = typeof budget === 'number' ? budget : parseFloat(budget);
+        if (!isNaN(numericBudget) && days && (numericBudget / days < minDailyBudget)) {
             return res.status(400).json({
                 error: "Budget too low",
-                message: `A budget of $${budget} is too low for a ${days}-day trip to ${destination}. We recommend at least $${days * minDailyBudget}.`
+                message: `A budget of $${numericBudget} is too low for a ${days}-day trip to ${destination}. We recommend at least $${days * minDailyBudget}.`
             });
         }
 
@@ -235,11 +236,14 @@ exports.regenerateTrip = async (req, res, next) => {
 
         // --- WEATHER INTEGRATION for Regeneration ---
         const weatherData = await getForecast(existingTrip.destination, existingTrip.startDate, existingTrip.days, existingTrip.destinationCoordinates);
-        if (weatherData && newItinerary.days) {
-            newItinerary.days = newItinerary.days.map((dayPlan, index) => ({
+        if (weatherData && (newItinerary.dailyPlan || newItinerary.days)) {
+            const planArr = newItinerary.dailyPlan || newItinerary.days;
+            const updatedPlan = planArr.map((dayPlan, index) => ({
                 ...dayPlan,
                 weather: weatherData[index] || "No forecast available"
             }));
+            if (newItinerary.dailyPlan) newItinerary.dailyPlan = updatedPlan;
+            else newItinerary.days = updatedPlan;
         }
 
         existingTrip.itinerary = newItinerary;
@@ -372,11 +376,14 @@ exports.updateTrip = async (req, res, next) => {
 
         // --- WEATHER INTEGRATION for Update ---
         const weatherData = await getForecast(trip.destination, trip.startDate, trip.days, trip.destinationCoordinates);
-        if (weatherData && aiPlan.days) {
-            aiPlan.days = aiPlan.days.map((dayPlan, index) => ({
+        if (weatherData && (aiPlan.dailyPlan || aiPlan.days)) {
+            const planArr = aiPlan.dailyPlan || aiPlan.days;
+            const updatedPlan = planArr.map((dayPlan, index) => ({
                 ...dayPlan,
                 weather: weatherData[index] || "No forecast available"
             }));
+            if (aiPlan.dailyPlan) aiPlan.dailyPlan = updatedPlan;
+            else aiPlan.days = updatedPlan;
         }
 
         trip.itinerary = aiPlan;

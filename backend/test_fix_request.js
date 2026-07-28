@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5001/api'; // Using port 5001 as per user request
+const API_URL = process.env.API_URL || 'http://127.0.0.1:5000/api';
 
 // Generate a random user to avoid duplicate key errors
 const testUser = {
@@ -12,8 +12,12 @@ const testUser = {
 const tripRequest = {
     destination: "Paris",
     days: 3,
-    budget: "medium", // This was causing the issue (String vs Number)
-    interests: ["Food", "Museums"]
+    budget: 1200,
+    interests: ["Food", "Museums"],
+    startDate: "2026-04-01",
+    endDate: "2026-04-03",
+    mode: "solo",
+    peopleCount: 1
 };
 
 async function runTest() {
@@ -36,7 +40,12 @@ async function runTest() {
         console.log("   Logged in successfully.");
     } catch (error) {
         console.error("   Authentication failed:", error.message);
-        if (error.response) console.error("   Details:", error.response.data);
+        if (error.response) {
+            console.error("   Status:", error.response.status);
+            console.error("   Details:", JSON.stringify(error.response.data, null, 2));
+        } else {
+            console.error("   Full error:", error);
+        }
         return; // specific fail
     }
 

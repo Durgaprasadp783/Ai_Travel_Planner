@@ -14,7 +14,7 @@ const budgetRoutes = require("./routes/budgetRoutes");
 const itineraryRoutes = require("./routes/itineraryRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 
-require("./db");
+const connectDB = require("./db");
 
 const app = express();
 
@@ -75,7 +75,18 @@ app.use(errorHandler);
 
 // 4. Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
-});
+
+async function startServer() {
+    try {
+        await connectDB();
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+            console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+        });
+    } catch (err) {
+        console.error("Failed to start server:", err.message);
+        process.exit(1);
+    }
+}
+
+startServer();

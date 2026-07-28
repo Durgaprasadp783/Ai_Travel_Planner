@@ -6,12 +6,49 @@ const travelModes = require('../config/travelModes');
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
+function parseBudget(budget) {
+    if (typeof budget === 'number' && !isNaN(budget)) return budget;
+    if (typeof budget === 'string') {
+        const parsed = parseFloat(budget);
+        if (!isNaN(parsed)) return parsed;
+        const lower = budget.toLowerCase();
+        if (lower.includes('low') || lower.includes('budget')) return 500;
+        if (lower.includes('high') || lower.includes('luxury')) return 3000;
+        if (lower.includes('mid') || lower.includes('medium')) return 1500;
+    }
+    return 1000;
+}
+
+/**
+ * Safely tries multiple Gemini models in order.
+ */
+async function callGeminiWithFallback(prompt) {
+    const models = ["gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-2.0-flash"];
+    
+    for (const modelName of models) {
+        try {
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            const result = await model.generateContent(prompt);
+            return result.response.text();
+        } catch (error) {
+            console.warn(`Model ${modelName} failed: ${error.message}. Trying next...`);
+        }
+    }
+    throw new Error("All Gemini models failed.");
+}
+
 /**
  * Main service to generate a structured AI itinerary.
  * Merges budget constraints with dynamic persona-based prompting.
  */
 exports.getAIPlan = async (tripData) => {
-    const { destination, days, budget, mode, interests, peopleCount, currency = 'USD' } = tripData;
+    const { destination, mode = 'solo', interests, peopleCount = 1, currency = 'USD' } = tripData;
+    const days = parseInt(tripData.days) || 3;
+    const budget = parseBudget(tripData.budget);
+
     try {
         const totalBudget = budget;
         const dailyBudget = Math.floor(budget / days);
@@ -19,7 +56,9 @@ exports.getAIPlan = async (tripData) => {
         // Get optimized budget info
         const budgetInfo = calculateAllocation(totalBudget, days, mode);
 
-        const interestString = interests && interests.length > 0 ? interests.join(', ') : 'General sightseeing';
+        const interestString = interests && (Array.isArray(interests) ? interests.length > 0 : Boolean(interests))
+            ? (Array.isArray(interests) ? interests.join(', ') : interests)
+            : 'General sightseeing';
 
         const prompt = `
             You are an expert travel planner. You MUST output ONLY valid JSON.
@@ -70,13 +109,7 @@ exports.getAIPlan = async (tripData) => {
             }
         `;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" }
-        });
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await callGeminiWithFallback(prompt);
 
         console.log("--- 🤖 GEMINI RESPONSE RECEIVED ---");
 
@@ -100,11 +133,14 @@ exports.getAIPlan = async (tripData) => {
  * Regenerates an existing itinerary based on user instructions.
  */
 exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
-    const { destination, days, budget, itinerary, mode, currency = 'USD' } = existingTrip;
+    const { destination, mode = 'solo', currency = 'USD' } = existingTrip;
+    const days = parseInt(existingTrip.days) || 3;
+    const budget = parseBudget(existingTrip.budget);
+    const itinerary = existingTrip.itinerary;
 
     try {
         const prompt = `
-            Current Itinerary for a ${days}-day ${mode || 'solo'} trip to ${destination} (${currency} ${budget}):
+            Current Itinerary for a ${days}-day ${mode} trip to ${destination} (${currency} ${budget}):
             ${JSON.stringify(itinerary, null, 2)}
 
             USER REQUEST: "${userInstruction}"
@@ -117,24 +153,19 @@ exports.regenerateAIPlan = async (existingTrip, userInstruction) => {
             5. Ensure the "dailyPlan" still contains EXACTLY ${days} days.
         `;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" }
-        });
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await callGeminiWithFallback(prompt);
 
         const parsedData = extractJSONObject(responseText);
 
         return {
             ...parsedData,
-            budgetAllocation: existingTrip.itinerary?.budgetAllocation || null
+            budgetAllocation: existingTrip.itinerary?.budgetAllocation || calculateAllocation(budget, days, mode)
         };
 
     } catch (error) {
         console.error("Gemini AI Regeneration Error:", error.message);
-        throw error;
+        console.log("🔄 QUOTA/ERROR DETECTED -> SWITCHING TO MOCK DATA FALLBACK FOR REGENERATION...");
+        return getMockData(destination, days, budget, mode);
     }
 };
 
@@ -161,8 +192,10 @@ function extractJSONObject(text) {
 function getMockData(destination, days, budget, mode) {
     console.warn("⚠️ Switching to Mock Data due to Error/Quota.");
 
-    const dailyBudget = Math.floor((budget || 1000) / (days || 3));
-    const budgetInfo = calculateAllocation(budget || 1000, days || 3, mode);
+    const numDays = parseInt(days) || 3;
+    const numBudget = parseBudget(budget);
+    const dailyBudget = Math.floor(numBudget / numDays);
+    const budgetInfo = calculateAllocation(numBudget, numDays, mode);
 
     const mockActivities = [
         { time: "09:00 AM", name: "Famous Breakfast Spot", location: `City Center, ${destination}`, description: "Start your day with traditional local cuisine.", estimatedCost: 15 },
@@ -175,7 +208,7 @@ function getMockData(destination, days, budget, mode) {
     return {
         destination: destination || "Selected City",
         overview: "A premium sample itinerary (Displayed as a fallback due to AI API rate limits).",
-        dailyPlan: Array.from({ length: days || 3 }, (_, i) => ({
+        dailyPlan: Array.from({ length: numDays }, (_, i) => ({
             day: i + 1,
             title: `Day ${i + 1}: Immersive Discovery`,
             dailyBudgetAllocated: dailyBudget,

@@ -2,18 +2,23 @@ const nodemailer = require('nodemailer');
 
 /**
  * Sends an email with the trip itinerary PDF as an attachment.
+ * Silently skips if SMTP credentials are not configured.
  */
 exports.sendTripEmail = async (userEmail, trip, pdfBuffer) => {
+    // Guard: skip email entirely if SMTP is not configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.log("⚠️ Email skipped: EMAIL_USER / EMAIL_PASS not set in .env");
+        return null;
+    }
+
     try {
-        // Create a transporter using environment variables
-        // If these are not provided, it will use a ethereal.email as a fallback for testing
         const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
-            port: process.env.EMAIL_PORT || 587,
+            host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.EMAIL_PORT) || 587,
             secure: process.env.EMAIL_SECURE === 'true',
             auth: {
-                user: process.env.EMAIL_USER || 'test@ethereal.email',
-                pass: process.env.EMAIL_PASS || 'password',
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
             },
         });
 
